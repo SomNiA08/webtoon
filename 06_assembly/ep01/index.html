@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>리:메타 (RE:META) — EP01</title>
+<!--
+  세로 스크롤 웹툰 뷰어 — 《리:메타(RE:META)》 1화 완성본(panel_001~057, 57패널)
+  · 말풍선/한글 대사는 이미지에 in-image 베이크됨 → 텍스트 오버레이 없음(순수 이미지 스트립).
+  · PANELS 배열의 {src, alt, gap}만 데이터로 주입. gap = 다음 패널까지의 이음새(px).
+    gap 0 = 무봉제(연속/붕괴·감지·각성 연쇄), 양수 = 장면 전환/시간 경과/침묵·암전 체류.
+  · gap 근거: shotlist SCENE BREAK + lettering.md '간격(gap) 힌트'
+    (무대사/여백=여백↑, 붕괴·감지·각성 연쇄=무봉제, 클리프행어 직전 침묵=최대여백).
+-->
+<style>
+  :root {
+    --max-w: 720px;          /* 모바일 우선 기준 폭 */
+    --page-bg: #0b0d10;      /* 뷰어 바깥 + 패널 이음새 배경(다크) */
+    --strip-bg: #0b0d10;     /* 스트립 배경(이미지 로드 전) */
+    --seam: #111318;         /* 패널 로딩 플레이스홀더 */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page-bg);
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    color: #f5f5f7;
+    -webkit-text-size-adjust: 100%;
+  }
+  header.viewer-head {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11,13,16,.90);
+    color: #f5f5f7; text-align: center;
+    padding: 9px 12px; font-size: 13.5px; letter-spacing: .01em;
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  header.viewer-head b { font-weight: 800; }
+  header.viewer-head .ep {
+    display: inline-block; margin-left: 8px;
+    font-size: 11.5px; font-weight: 700; letter-spacing: .04em;
+    color: #F5A623; border: 1px solid rgba(245,166,35,.5);
+    border-radius: 999px; padding: 1px 9px; vertical-align: middle;
+  }
+  .strip {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    background: var(--strip-bg);
+    display: block;
+  }
+  .panel { position: relative; line-height: 0; }
+  .panel img {
+    width: 100%; height: auto; display: block;
+    background: var(--seam);   /* 로딩 중/결손 시 칸 형태 유지 */
+  }
+  .panel .missing {
+    line-height: 1.5; color: #ffd7dc; background: #2a0d12;
+    border: 2px dashed #E23B3B; text-align: center;
+    padding: 48px 12px; font-size: 14px;
+  }
+  footer.viewer-foot {
+    color:#8b909a; text-align:center; padding:34px 12px 72px;
+    font-size:12.5px; max-width: var(--max-w); margin:0 auto; line-height:1.6;
+  }
+  footer.viewer-foot .end {
+    display:block; color:#F5A623; font-weight:800; letter-spacing:.06em;
+    font-size:13px; margin-bottom:6px;
+  }
+</style>
+</head>
+<body>
+<header class="viewer-head">
+  <b id="m-title">리:메타 (RE:META)</b>
+  <span class="ep" id="m-ep">EP01</span>
+</header>
+<main class="strip" id="strip" aria-label="webtoon vertical viewer"></main>
+<footer class="viewer-foot" id="foot"></footer>
+
+<script>
+/* ===== META ===== */
+const META = {
+  title: "리:메타 (RE:META)",
+  episode: "EP01",
+  total: 57
+};
+
+/* ===== PANELS 데이터 (episode-compositor 주입) =====
+   src = 이 파일 기준 상대경로. gap = 다음 패널까지 이음새(px).
+   gap 근거: shotlist SCENE BREAK + lettering.md '간격(gap) 힌트'.
+   [S1 크라운 아레나 붕괴 001~013] [브릿지 암전→여명 014~015] [S2 기숙사 016~021]
+   [S3 아카데미 022~024] [S4 지하계단 025] [S5 콜드벤치 026~047] [S6 윤태오 방 048~054]
+   [교차컷 유건 반응 055~057] */
+const PANELS = [
+  { src: "../../05_panels/ep01/panel_001.png", alt: "panel 001 · S1 결승 스펙터클(오프닝 와이드)",        gap: 28 },
+  { src: "../../05_panels/ep01/panel_002.png", alt: "panel 002 · 스코어보드 인서트(초읽기)",              gap: 28 },
+  { src: "../../05_panels/ep01/panel_003.png", alt: "panel 003 · ★오더 미니맵 SSOT '서지 셋. 타이탄 버려.'", gap: 0  }, // →004 무봉제
+  { src: "../../05_panels/ep01/panel_004.png", alt: "panel 004 · 명령형 오더(옆얼굴+헤드셋)",             gap: 60 }, // 위화감으로 전환 비트
+  { src: "../../05_panels/ep01/panel_005.png", alt: "panel 005 · 잔상 어긋남 시작(위화감 급습)",          gap: 0  }, // 붕괴 연쇄 무봉제
+  { src: "../../05_panels/ep01/panel_006.png", alt: "panel 006 · 팀 코어 붕괴/스코어 뒤집힘",             gap: 0  }, // 붕괴 연쇄 무봉제
+  { src: "../../05_panels/ep01/panel_007.png", alt: "panel 007 · 경악의 눈 ECU",                          gap: 28 }, // 손으로 하강
+  { src: "../../05_panels/ep01/panel_008.png", alt: "panel 008 · ★손 떨림 SSOT(트라우마①, 무대사)",       gap: 64 },
+  { src: "../../05_panels/ep01/panel_009.png", alt: "panel 009 · 중계석 절규",                            gap: 60 },
+  { src: "../../05_panels/ep01/panel_010.png", alt: "panel 010 · 관중 야유·무음 매장(고립)",              gap: 60 },
+  { src: "../../05_panels/ep01/panel_011.png", alt: "panel 011 · 스포트라이트 소등·절망(무대사·최대여백)", gap: 168 }, // 최대여백 후 체류
+  { src: "../../05_panels/ep01/panel_012.png", alt: "panel 012 · 회귀 트리거(세계 왜곡)",                 gap: 60 },
+  { src: "../../05_panels/ep01/panel_013.png", alt: "panel 013 · 잔상 역재생 글리치(무대사·긴 세로)",     gap: 184 }, // →브릿지 씬 브레이크
+  { src: "../../05_panels/ep01/panel_014.png", alt: "panel 014 · 암전·숨 멈춤(무대사·최대여백)",          gap: 240 }, // VOID 최대여백
+  { src: "../../05_panels/ep01/panel_015.png", alt: "panel 015 · 여명 스밈(청각 브릿지)",                 gap: 132 }, // →각성 씬 브레이크
+  { src: "../../05_panels/ep01/panel_016.png", alt: "panel 016 · 각성·눈뜸 ECU",                          gap: 32 },
+  { src: "../../05_panels/ep01/panel_017.png", alt: "panel 017 · ★손 SSOT 대구(…안 떨려, 무대사 인서트)", gap: 44 },
+  { src: "../../05_panels/ep01/panel_018.png", alt: "panel 018 · 7년 전 방 정경(이물감)",                 gap: 32 },
+  { src: "../../05_panels/ep01/panel_019.png", alt: "panel 019 · 거울 속 얼굴(프레임 인 프레임)",         gap: 60 },
+  { src: "../../05_panels/ep01/panel_020.png", alt: "panel 020 · '…돌아왔어'(정보 우위 확립·절제)",       gap: 56 },
+  { src: "../../05_panels/ep01/panel_021.png", alt: "panel 021 · 헤드셋 집는 손(무대사·트라우마 잔재)",   gap: 156 }, // →아카데미 씬 브레이크
+  { src: "../../05_panels/ep01/panel_022.png", alt: "panel 022 · 아카데미 입학 게이트(소외)",             gap: 28 },
+  { src: "../../05_panels/ep01/panel_023.png", alt: "panel 023 · 티어 배지 'TIER: SLAG'(낙차)",           gap: 32 },
+  { src: "../../05_panels/ep01/panel_024.png", alt: "panel 024 · 콜드 벤치 배정·냉대",                    gap: 156 }, // →지하 씬 브레이크
+  { src: "../../05_panels/ep01/panel_025.png", alt: "panel 025 · 지하 하강(무대사·억압 세로컷)",          gap: 184 }, // 하강 최대여백 →콜드벤치
+  { src: "../../05_panels/ep01/panel_026.png", alt: "panel 026 · 콜드 벤치 문 'THE COLD BENCH'",          gap: 48 },
+  { src: "../../05_panels/ep01/panel_027.png", alt: "panel 027 · 방 스캔 POV(냉정한 판단)",              gap: 56 },
+  { src: "../../05_panels/ep01/panel_028.png", alt: "panel 028 · ★손 재떨림 SSOT(트라우마②·미스디렉션)", gap: 28 }, // 의지 대비 tight
+  { src: "../../05_panels/ep01/panel_029.png", alt: "panel 029 · 주먹으로 떨림 억누름(무대사·의지)",      gap: 72 }, // 톱니 골 이완
+  { src: "../../05_panels/ep01/panel_030.png", alt: "panel 030 · 콜드 벤치 동료 3인 소개(하루·태산·도경)", gap: 48 }, // →문틀 비트
+  { src: "../../05_panels/ep01/panel_031.png", alt: "panel 031 · S5·문틀 한상혁 씨앗(고형준 원경)",       gap: 60 }, // →스크림 씬 브레이크
+  { src: "../../05_panels/ep01/panel_032.png", alt: "panel 032 · 스크림 개시·하루 '상대 상위반'",         gap: 36 }, // 사이다 톱니 상승 시작
+  { src: "../../05_panels/ep01/panel_033.png", alt: "panel 033 · 고구마 셋업(태산 외침/도경 만류)",       gap: 44 },
+  { src: "../../05_panels/ep01/panel_034.png", alt: "panel 034 · ★W2 예지 노출·유건 '…저기서 온다'",     gap: 44 },
+  { src: "../../05_panels/ep01/panel_035.png", alt: "panel 035 · 눈 클로즈업(무대사·계산 완료의 정적)",   gap: 108 }, // 각성 전 정적 여백↑
+  { src: "../../05_panels/ep01/panel_036.png", alt: "panel 036 · ★오더 미니맵 SSOT 2차 '서지 셋. 타이탄 버려.'", gap: 0  }, // →명령 쏟아짐 무봉제
+  { src: "../../05_panels/ep01/panel_037.png", alt: "panel 037 · 콜 명령형 쏟아짐(태산·하루·도경 호명)",  gap: 28 },
+  { src: "../../05_panels/ep01/panel_038.png", alt: "panel 038 · 태산 반신반의 '…어? 어어'",             gap: 0  }, // →사이다 임팩트 무봉제
+  { src: "../../05_panels/ep01/panel_039.png", alt: "panel 039 · ★사이다 1차 정점(콰앙—)·'정확히 거기서'", gap: 56 }, // 임팩트 후 체류
+  { src: "../../05_panels/ep01/panel_040.png", alt: "panel 040 · 미스디렉션 허세(태산 외침/유건 '…찍었어')", gap: 44 },
+  { src: "../../05_panels/ep01/panel_041.png", alt: "panel 041 · 하루·도경 '우연 아니에요'",             gap: 32 },
+  { src: "../../05_panels/ep01/panel_042.png", alt: "panel 042 · 여론 채팅 스택(술렁)",                  gap: 40 },
+  { src: "../../05_panels/ep01/panel_043.png", alt: "panel 043 · 도경 데이터 의심 '승률 12%'",           gap: 60 }, // →윤태오 감지 전환
+  { src: "../../05_panels/ep01/panel_044.png", alt: "panel 044 · ★오더 미니맵 SSOT 3차(관전)·윤태오 '…응?'", gap: 0  }, // 감지 연쇄 무봉제
+  { src: "../../05_panels/ep01/panel_045.png", alt: "panel 045 · 윤태오 '이 오더 어디서 봤지'",          gap: 0  }, // 감지 연쇄 무봉제
+  { src: "../../05_panels/ep01/panel_046.png", alt: "panel 046 · 윤태오 '…설마'(오버숄더 응시)",         gap: 60 },
+  { src: "../../05_panels/ep01/panel_047.png", alt: "panel 047 · 시선 엇갈림 불안 전조(무대사·③→④막 브릿지)", gap: 144 }, // 여백↑ →S6 씬 브레이크
+  { src: "../../05_panels/ep01/panel_048.png", alt: "panel 048 · S6 윤태오 방 밤·'기분 탓일 리 없어'",   gap: 32 },
+  { src: "../../05_panels/ep01/panel_049.png", alt: "panel 049 · ★SSOT 자구 인용 '서지 셋. 타이탄 버려.'(미스디렉션 해제)", gap: 44 },
+  { src: "../../05_panels/ep01/panel_050.png", alt: "panel 050 · 부계정 리셋 흔적 발견",                 gap: 40 },
+  { src: "../../05_panels/ep01/panel_051.png", alt: "panel 051 · 윤태오 '…이럴 리가'(확신 임박)",        gap: 60 },
+  { src: "../../05_panels/ep01/panel_052.png", alt: "panel 052 · 최대여백 침묵 박자(무대사·클리프행어 직전 '쿵')", gap: 200 }, // 침묵 최대여백↑
+  { src: "../../05_panels/ep01/panel_053.png", alt: "panel 053 · 실루엣 고개 듦(무대사·반전 직전 정적)",  gap: 152 }, // 침묵 연장→반전
+  { src: "../../05_panels/ep01/panel_054.png", alt: "panel 054 · ★반전 회수·1차 클리프행어 '…그 계정, 너였어?'(대형 단독)", gap: 40 }, // 반전 연쇄 조임
+  { src: "../../05_panels/ep01/panel_055.png", alt: "panel 055 · 유건 잔상 시인(무대사·교차컷 충격 증폭)", gap: 72 }, // 무대사 여백↑
+  { src: "../../05_panels/ep01/panel_056.png", alt: "panel 056 · ★손 대구 SSOT 최종·시점 반전 '…아직 오지 않은 미래였어'", gap: 0  }, // 각성 연쇄 무봉제
+  { src: "../../05_panels/ep01/panel_057.png", alt: "panel 057 · ★2차 훅·앰버 발화 '이번엔… 이긴다'(정점·마지막)", gap: 0  }  // 회차 종단
+];
+
+/* ===== 렌더러 ===== */
+function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+
+function renderPanel(p, i){
+  const panel = el("div", "panel");
+  if (p.gap) panel.style.marginBottom = p.gap + "px";  // 데이터 주도 이음새(리듬)
+  const img = new Image();
+  img.loading = "lazy";              // 긴 회차 성능을 위한 지연 로드
+  img.decoding = "async";
+  img.alt = p.alt || ("panel " + String(i+1).padStart(3,"0"));
+  img.src = p.src;
+  img.onerror = () => {              // 결손/0바이트 PNG는 칸을 비우지 않고 표시
+    const ph = el("div", "missing", "⚠ 패널 이미지 누락/손상: " + p.src);
+    img.replaceWith(ph);
+  };
+  panel.appendChild(img);
+  return panel;
+}
+
+(function init(){
+  document.title = META.title + " — " + META.episode;
+  document.getElementById("m-title").textContent = META.title;
+  document.getElementById("m-ep").textContent = META.episode;
+  const strip = document.getElementById("strip");
+  PANELS.forEach((p,i) => strip.appendChild(renderPanel(p,i)));
+  const foot = document.getElementById("foot");
+  foot.appendChild(el("span", "end", "EP01 · END"));
+  foot.appendChild(document.createTextNode(
+    "《리:메타 (RE:META)》 ep01 · 전 " + PANELS.length + "패널 · 다음 화에 계속"));
+})();
+</script>
+</body>
+</html>

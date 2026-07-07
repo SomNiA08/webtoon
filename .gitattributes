@@ -1,0 +1,4 @@
+# bash/python 스크립트는 LF 고정 — autocrlf 환경에서 CRLF로 체크아웃되면
+# git-bash 실행이 깨진다(somnia-hub 2026-07-07 패스 ④와 동일 조치)
+*.sh text eol=lf
+*.py text eol=lf

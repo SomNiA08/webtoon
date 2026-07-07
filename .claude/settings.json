@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Write(SOUL.md)",
+      "Edit(SOUL.md)",
+      "Write(**/SOUL.md)",
+      "Edit(**/SOUL.md)",
+      "Write(soul.md)",
+      "Edit(soul.md)",
+      "Write(**/soul.md)",
+      "Edit(**/soul.md)",
+      "Write(**/engine.mjs)",
+      "Edit(**/engine.mjs)"
+    ]
+  }
+}

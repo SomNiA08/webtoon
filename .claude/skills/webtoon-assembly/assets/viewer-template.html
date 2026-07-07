@@ -6,21 +6,29 @@
 <title>웹툰 뷰어 — ep{NN}</title>
 <!--
   세로 스크롤 웹툰 뷰어 템플릿 (단일 HTML, 외부 의존성 없음)
+  이 하네스의 말풍선·한글 대사는 패널 PNG에 in-image 베이크되어 있다 — 오버레이 없음.
   사용법:
    1) 아래 META(제목/회차)와 PANELS 데이터 배열만 채운다.
    2) 패널은 위→아래 순서대로 배열한다(panel_001 → panel_050+).
-   3) bubbles[].x/y 는 패널 좌상단 기준 백분율(0~100), w 는 말풍선 폭(%).
-      type: dialogue | thought | shout | narration
-      tail: none | left | right | up | down  (말풍선 꼬리가 가리키는 방향 = 화자 방향)
-   4) 브라우저로 그대로 열어 검수한다.
+   3) 한 항목 = { src, alt, gap, w, h }
+      - src: 이 파일 기준 상대경로
+      - gap: 다음 패널과의 간격(px). 0=무봉제(연속 컷), 양수=장면 전환/시간 경과/침묵 컷.
+             생략하면 --panel-gap 기본값을 따른다.
+      - w/h: 원본 PNG 픽셀 치수(예: 1024×1536). 지정하면 이미지 로드 전에 칸 높이가
+             예약되어 레이아웃 시프트(CLS) 없이 스크롤 위치가 안정된다.
+             `file 05_panels/ep{NN}/panel_*.png` 출력의 "W x H"를 그대로 옮긴다.
+   4) 로딩 전략(50+장 × 수 MB 대비, 아래 렌더러에 반영됨):
+      - 선두 EAGER_COUNT장은 즉시 로드(첫 장은 fetchpriority=high) → 첫 화면 체감 속도.
+      - 나머지는 loading=lazy + IntersectionObserver 프리페치(PREFETCH_MARGIN 앞서 로드)
+        → 스크롤 도달 전에 로드가 끝난다. IO 미지원 브라우저는 네이티브 lazy로 폴백.
+   5) 브라우저로 그대로 열어 검수한다.
 -->
 <style>
   :root {
     --max-w: 720px;          /* 모바일 우선 기준 폭 */
-    --panel-gap: 0px;        /* 패널 이음새. 0=무봉제 연결, 양수=칸 분리 */
+    --panel-gap: 0px;        /* 패널 이음새 기본값. 0=무봉제 연결, 양수=칸 분리(항목별 gap이 우선) */
     --page-bg: #0e0e10;      /* 뷰어 바깥 배경 */
     --strip-bg: #ffffff;     /* 패널 스트립 배경(이미지 로드 전) */
-    --bubble-fs: 17px;       /* 말풍선 기본 폰트 크기(가독성 기준) */
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -42,60 +50,18 @@
     max-width: var(--max-w);
     margin: 0 auto;
     background: var(--strip-bg);
-    display: flex; flex-direction: column;
-    gap: var(--panel-gap);
   }
   .panel { position: relative; line-height: 0; }
+  /* 이음새: 기본은 --panel-gap, 항목별 gap이 인라인 스타일로 덮어쓴다 */
+  .panel:not(:last-child) { margin-bottom: var(--panel-gap); }
   .panel img {
     width: 100%; height: auto; display: block;
-    background: #e9e9ee; /* 이미지 결손 시에도 칸 형태 유지 */
+    background: #e9e9ee; /* 이미지 결손/로드 전에도 칸 형태 유지 */
   }
   .panel .missing {
     line-height: 1.5; color: #b00020; background: #fff3f3;
     border: 2px dashed #b00020; text-align: center;
     padding: 48px 12px; font-size: 14px;
-  }
-  /* ---- 말풍선 오버레이 ---- */
-  .bubble {
-    position: absolute;
-    line-height: 1.35;
-    font-size: var(--bubble-fs);
-    font-weight: 500;
-    color: #111;
-    padding: 9px 13px;
-    border-radius: 18px;
-    background: #fff;
-    border: 2px solid #111;
-    box-shadow: 0 1px 4px rgba(0,0,0,.18);
-    word-break: keep-all;
-    transform: translate(-50%, -50%); /* x,y = 말풍선 중심 */
-    text-align: center;
-    z-index: 5;
-  }
-  .bubble .tail {
-    position: absolute; width: 0; height: 0;
-  }
-  /* 대사(기본) — 꼬리 삼각형 */
-  .bubble.dialogue .tail.left   { left:-14px; top:60%; border:8px solid transparent; border-right-color:#111; }
-  .bubble.dialogue .tail.right  { right:-14px; top:60%; border:8px solid transparent; border-left-color:#111; }
-  .bubble.dialogue .tail.up     { top:-14px; left:50%; border:8px solid transparent; border-bottom-color:#111; }
-  .bubble.dialogue .tail.down   { bottom:-14px; left:50%; border:8px solid transparent; border-top-color:#111; }
-  /* 생각 — 점선 테두리, 둥근 구름 느낌 */
-  .bubble.thought {
-    border-style: dashed; border-radius: 26px; font-style: italic; color:#333;
-  }
-  /* 외침 — 두꺼운 테두리, 굵은 대문자감, 약간 기울임 */
-  .bubble.shout {
-    border-width: 3px; font-weight: 800; border-radius: 8px;
-    background:#fffbe6; transform: translate(-50%,-50%) rotate(-2deg);
-    text-transform: none; letter-spacing:.01em;
-  }
-  .bubble.shout .tail.left  { left:-16px; top:60%; border:9px solid transparent; border-right-color:#111; }
-  .bubble.shout .tail.right { right:-16px; top:60%; border:9px solid transparent; border-left-color:#111; }
-  /* 나레이션 — 사각 캡션 박스, 꼬리 없음 */
-  .bubble.narration {
-    border-radius: 4px; background: rgba(20,20,24,.86); color:#f7f7f7;
-    border-color: rgba(255,255,255,.25); font-weight:600; text-align:left;
   }
   footer.viewer-foot {
     color:#9a9aa2; text-align:center; padding:28px 12px 60px;
@@ -112,53 +78,40 @@
 /* ===== META ===== */
 const META = { title: "웹툰 제목", episode: "ep{NN}" };
 
+/* ===== 로딩 전략 상수 ===== */
+const EAGER_COUNT = 3;            // 선두 즉시 로드 패널 수(첫 화면)
+const PREFETCH_MARGIN = "2400px"; // 뷰포트 하단에서 이만큼 앞서 미리 로드(약 2~3패널 분량)
+
 /* ===== PANELS 데이터 (episode-compositor가 채운다) =====
-   src 는 이 파일 기준 상대경로. bubbles 는 없으면 [] 또는 생략. */
+   src 는 이 파일 기준 상대경로. gap(px)=다음 패널과의 간격, w/h=원본 픽셀 치수(권장 — CLS 방지).
+   말풍선 데이터는 없다 — 대사는 패널 PNG에 베이크되어 있다. */
 const PANELS = [
-  {
-    src: "../../05_panels/ep{NN}/panel_001.png",
-    alt: "panel 001",
-    bubbles: [
-      { type: "narration", text: "예시 나레이션 — 데이터만 교체하라.", x: 50, y: 12, w: 80 },
-      { type: "dialogue", text: "이건 대사 말풍선.", x: 32, y: 70, w: 42, tail: "down" }
-    ]
-  },
-  {
-    src: "../../05_panels/ep{NN}/panel_002.png",
-    alt: "panel 002",
-    bubbles: [
-      { type: "thought", text: "이건 생각...", x: 68, y: 30, w: 40 },
-      { type: "shout", text: "외침!!", x: 50, y: 80, w: 36, tail: "left" }
-    ]
-  }
+  { src: "../../05_panels/ep{NN}/panel_001.png", alt: "panel 001", gap: 0, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep{NN}/panel_002.png", alt: "panel 002", gap: 0, w: 1024, h: 1536 }
 ];
 
 /* ===== 렌더러 ===== */
 function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
 
-function renderBubble(b){
-  const node = el("div", "bubble " + (b.type||"dialogue"));
-  node.style.left = (b.x ?? 50) + "%";
-  node.style.top  = (b.y ?? 50) + "%";
-  if (b.w) node.style.maxWidth = b.w + "%";
-  node.appendChild(document.createTextNode(b.text||""));
-  if (b.tail && b.tail !== "none") node.appendChild(el("span", "tail " + b.tail));
-  return node;
-}
-
 function renderPanel(p, i){
   const panel = el("div", "panel");
   const img = new Image();
-  img.loading = "lazy";              // 긴 회차 성능을 위한 지연 로드
+  if (i < EAGER_COUNT) {
+    img.loading = "eager";                 // 선두 패널: 즉시 로드(첫 화면 체감 속도)
+    if (i === 0) img.fetchPriority = "high";
+  } else {
+    img.loading = "lazy";                  // 나머지: 지연 로드(초기 로딩·메모리 절감)
+  }
   img.decoding = "async";
+  if (p.w && p.h) { img.width = p.w; img.height = p.h; }  // 로드 전 칸 높이 예약(레이아웃 시프트 방지)
   img.alt = p.alt || ("panel " + String(i+1).padStart(3,"0"));
   img.src = p.src;
-  img.onerror = () => {              // 결손/0바이트 PNG는 칸을 비우지 않고 표시
+  img.onerror = () => {                    // 결손/0바이트 PNG는 칸을 비우지 않고 표시
     const ph = el("div", "missing", "⚠ 패널 이미지 누락/손상: " + p.src);
     img.replaceWith(ph);
   };
+  if (p.gap != null) panel.style.marginBottom = p.gap + "px"; // 항목별 이음새(기본은 --panel-gap)
   panel.appendChild(img);
-  (p.bubbles||[]).forEach(b => panel.appendChild(renderBubble(b)));
   return panel;
 }
 
@@ -170,6 +123,20 @@ function renderPanel(p, i){
   PANELS.forEach((p,i) => strip.appendChild(renderPanel(p,i)));
   document.getElementById("foot").textContent =
     "총 " + PANELS.length + " 패널 · 끝까지 스크롤하세요";
+
+  // 프리페치: 뷰포트보다 PREFETCH_MARGIN 앞서 lazy 이미지를 eager로 승격해
+  // 독자가 스크롤로 도달하기 전에 로드를 끝낸다. IO 미지원이면 네이티브 lazy로 폴백.
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const img = e.target.querySelector("img");
+        if (img && img.loading === "lazy") img.loading = "eager";
+        io.unobserve(e.target);
+      }
+    }, { rootMargin: PREFETCH_MARGIN + " 0px" });
+    Array.from(strip.children).forEach(node => io.observe(node));
+  }
 })();
 </script>
 </body>

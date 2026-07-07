@@ -8,6 +8,8 @@
 #   4. every panel matches 04_visual/ep{NN}_manifest.md5 (validated-bytes gate)
 #   5. if RELEASE/ep{NN}/panels exists, it matches 05_panels/ep{NN} exactly
 # Exit 0 = gate passed (sign-off allowed). Non-zero = sign-off must be refused.
+# Perf note: md5 is computed ONCE per tree (single batch call) and reused by
+# checks 3/4/5 — one process spawn per file is slow on Windows (git-bash).
 set -u
 NN="${1:?usage: _verify_release.sh <NN>}"
 REPO="$(cd "$(dirname "$0")" && pwd)"
@@ -16,47 +18,67 @@ MANIFEST="$REPO/04_visual/ep${NN}_manifest.md5"
 RELPANELS="$REPO/RELEASE/ep$NN/panels"
 fail=0
 
+# md5 batch: GNU md5sum (Windows git-bash / Linux) or macOS `md5 -r`; both emit "<hash> <name>"
+md5list() {
+  if command -v md5sum >/dev/null 2>&1; then md5sum "$@"; else md5 -r "$@"; fi
+}
+
+TMP_ACT="$(mktemp)"; TMP_REL="$(mktemp)"; TMP_SIG="$(mktemp)"
+trap 'rm -f "$TMP_ACT" "$TMP_REL" "$TMP_SIG"' EXIT
+
 echo "== release gate ep$NN =="
 
-# 1. count
+# md5 of every png in the panels dir, computed once (basenames only)
+( cd "$PANELS" 2>/dev/null && md5list *.png 2>/dev/null ) > "$TMP_ACT" || true
+
+# 1. count + contiguous numbering
 count=$(ls "$PANELS"/panel_*.png 2>/dev/null | wc -l | tr -d ' ')
 echo "[1] panel count: $count"
 [ "$count" -ge 50 ] || { echo "    FAIL: fewer than 50 panels"; fail=1; }
+last="$(ls "$PANELS"/panel_*.png 2>/dev/null | sed -e 's/.*panel_//' -e 's/\.png$//' | sort -n | tail -1)"
+if [ -n "$last" ] && [ "$((10#$last))" -ne "$count" ]; then
+  echo "    FAIL: numbering not contiguous (highest panel_$last vs count $count)"; fail=1
+fi
 
-# 2. zero-byte / magic bytes
+# 2. zero-byte / magic bytes (8-byte signature compare: 2 spawns/file instead of 4)
 zero="$(find "$PANELS" -name 'panel_*.png' -size 0 2>/dev/null)"
 [ -z "$zero" ] && echo "[2] zero-byte: none" || { printf '[2] FAIL zero-byte:\n%s\n' "$zero"; fail=1; }
+printf '\x89PNG\r\n\x1a\n' > "$TMP_SIG"
 bad=0
 for f in "$PANELS"/panel_*.png; do
-  head -c 8 "$f" | od -An -tx1 | tr -d ' \n' | grep -q '^89504e470d0a1a0a$' || { echo "    FAIL bad PNG header: $f"; bad=1; }
+  [ -e "$f" ] || continue
+  head -c 8 "$f" | cmp -s -- - "$TMP_SIG" || { echo "    FAIL bad PNG header: $f"; bad=1; }
 done
 [ "$bad" -eq 0 ] && echo "[2] PNG headers: all ok" || fail=1
 
-# 3. md5 duplicates
-dups="$(md5sum "$PANELS"/panel_*.png | awk '{print $1}' | sort | uniq -d)"
+# 3. md5 duplicates (reuses the batch md5s)
+# note: Windows md5sum emits binary-mode names as "*panel_001.png" — strip the marker
+dups="$(awk '{ n=$2; sub(/^\*/, "", n); if (n ~ /^panel_.*\.png$/) print $1 }' "$TMP_ACT" | sort | uniq -d)"
 [ -z "$dups" ] && echo "[3] md5 duplicates: none" || { echo "[3] FAIL md5 duplicates: $dups"; fail=1; }
 
 # 4. manifest gate — validated bytes only
 # manifest convention: created via (cd 05_panels/epNN && md5sum *.png > ../../04_visual/epNN_manifest.md5)
-# but tolerate entries with directory prefixes; compare by basename.
+# but tolerate entries with directory prefixes; compare by basename against the batch md5s.
 if [ -f "$MANIFEST" ]; then
   gate=0
-  seen=""
-  while read -r h p; do
-    [ -n "$h" ] || continue
-    p="${p#\*}"          # strip md5sum binary-mode marker
-    b="${p##*/}"         # basename
-    seen="$seen $b"
-    if [ ! -f "$PANELS/$b" ]; then
-      echo "    FAIL manifest entry missing on disk: $b"; gate=1; continue
-    fi
-    actual="$(md5sum "$PANELS/$b" | awk '{print $1}')"
-    [ "$h" = "$actual" ] || { echo "    FAIL md5 mismatch (unvalidated bytes): $b"; gate=1; }
-  done < "$MANIFEST"
-  for f in "$PANELS"/panel_*.png; do
-    b="$(basename "$f")"
-    case " $seen " in *" $b "*) ;; *) echo "    FAIL panel not in manifest (never validated): $b"; gate=1 ;; esac
-  done
+  gate_out="$(awk '
+    NR==FNR { if (NF>=2) { n=$2; sub(/^\*/, "", n); act[n]=$1 } next }
+    NF>=2 {
+      h=$1; p=$2; sub(/^\*/, "", p); n=p; sub(/.*\//, "", n); seen[n]=1
+      if (!(n in act))      printf "MISSING %s\n", n
+      else if (act[n]!=h)   printf "MISMATCH %s\n", n
+    }
+    END { for (n in act) if (!(n in seen) && n ~ /^panel_.*\.png$/) printf "EXTRA %s\n", n }
+  ' "$TMP_ACT" "$MANIFEST")"
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    b="${line#* }"
+    case "$line" in
+      MISSING\ *)  echo "    FAIL manifest entry missing on disk: $b"; gate=1 ;;
+      MISMATCH\ *) echo "    FAIL md5 mismatch (unvalidated bytes): $b"; gate=1 ;;
+      EXTRA\ *)    echo "    FAIL panel not in manifest (never validated): $b"; gate=1 ;;
+    esac
+  done <<< "$gate_out"
   if [ "$gate" -eq 0 ]; then
     echo "[4] manifest gate: all panels match validated md5"
   else
@@ -69,15 +91,21 @@ else
   fail=1
 fi
 
-# 5. RELEASE copy integrity (only if already packaged)
+# 5. RELEASE copy integrity (only if already packaged) — batch md5 compare, no per-file cmp
 if [ -d "$RELPANELS" ]; then
+  ( cd "$RELPANELS" 2>/dev/null && md5list *.png 2>/dev/null ) > "$TMP_REL" || true
+  rel_out="$(awk '
+    NR==FNR { if (NF>=2) { n=$2; sub(/^\*/, "", n); rel[n]=$1 } next }
+    NF>=2 {
+      n=$2; sub(/^\*/, "", n)
+      if (n ~ /^panel_.*\.png$/ && (!(n in rel) || rel[n]!=$1)) print n
+    }
+  ' "$TMP_REL" "$TMP_ACT")"
   diffed=0
-  for f in "$PANELS"/panel_*.png; do
-    b="$(basename "$f")"
-    if [ ! -f "$RELPANELS/$b" ] || ! cmp -s "$f" "$RELPANELS/$b"; then
-      echo "    FAIL RELEASE copy differs/missing: $b"; diffed=1
-    fi
-  done
+  while IFS= read -r b; do
+    [ -n "$b" ] || continue
+    echo "    FAIL RELEASE copy differs/missing: $b"; diffed=1
+  done <<< "$rel_out"
   [ "$diffed" -eq 0 ] && echo "[5] RELEASE copy: identical" || fail=1
 else
   echo "[5] RELEASE not packaged yet: skipped"

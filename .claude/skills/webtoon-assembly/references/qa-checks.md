@@ -37,8 +37,9 @@ command -v sips >/dev/null && for f in "$DIR"/panel_*.png; do \
 ## 4. 번호 결손(빠진 패널) 검출
 ```bash
 EP=01; DIR="05_panels/ep${EP}"
-N=$(ls "$DIR"/panel_*.png 2>/dev/null | wc -l | tr -d ' ')
-for i in $(seq -f "%03g" 1 "$N"); do
+# 개수가 아니라 최대 번호까지 훑어야 중간 구멍을 놓치지 않는다
+N=$(ls "$DIR"/panel_*.png 2>/dev/null | sed -e 's/.*panel_//' -e 's/\.png$//' | sort -n | tail -1)
+for i in $(seq -f "%03g" 1 "${N:-0}"); do
   [ -f "$DIR/panel_${i}.png" ] || echo "MISSING: panel_${i}.png"
 done
 ```

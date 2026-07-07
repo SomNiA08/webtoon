@@ -11,7 +11,7 @@ description: "렌더된 패널 PNG들을 세로 스크롤 웹툰 뷰어(index.ht
 1. `05_panels/ep{NN}/`의 패널 PNG를 파일명 순서(panel_001 → panel_050+)대로 세로로 배치한다.
 2. **말풍선·대사는 이미지에 이미 베이크되어 있으므로 텍스트 오버레이를 얹지 않는다.** 패널을 그대로 잇는 순수 이미지 스트립이 기본이다. (`ep{NN}_lettering.md`는 패널 간 간격·리듬 힌트와 — 침묵 컷 위치, 반전 컷 강조 — QA가 베이크된 텍스트를 대조할 기준으로만 참조한다.)
 3. `webtoon-assembly` 스킬의 `assets/viewer-template.html`을 골격으로, 패널 리스트(이미지 경로 배열)를 채워 동작하는 `index.html`을 생성한다.
-4. 모바일 우선 반응형 폭, 패널 간 이음새/간격(장면 전환=넓게, 연속 컷=좁게, 침묵 컷=넓게), lazy-load를 적용해 실제 웹툰 뷰어 경험을 재현한다.
+4. 모바일 우선 반응형 폭, 패널 간 이음새/간격(장면 전환=넓게, 연속 컷=좁게, 침묵 컷=넓게), 로딩 전략(선두 2~3장 eager + 나머지 lazy + 프리페치, `w`/`h` 치수로 칸 높이 예약 = 레이아웃 시프트 방지)을 적용해 실제 웹툰 뷰어 경험을 재현한다. 110MB급 회차도 첫 화면이 즉시 뜨고 스크롤이 끊기지 않아야 한다.
 5. 패널 수·파일 존재·0바이트/손상/순서 누락을 점검해 조립 단계에서 깨진 산출물이 나가지 않게 막는다.
 
 ## 작업 원칙
@@ -28,10 +28,10 @@ description: "렌더된 패널 PNG들을 세로 스크롤 웹툰 뷰어(index.ht
   - `04_visual/ep{NN}_validation.md` — panel-validator의 통과/플래그 결과(ACCEPT-FLAG 패널 인지).
   - (참조) `webtoon-assembly` 스킬의 `assets/viewer-template.html` — 뷰어 골격.
 - 출력: `06_assembly/ep{NN}/index.html`
-- 형식: 외부 의존성 없는 단일 HTML(인라인 CSS/JS). 패널 이미지는 `../../05_panels/ep{NN}/panel_NNN.png` 상대경로 또는 동일 폴더 복사본으로 참조. 상단 데이터 배열(PANELS)에 `{src, alt, gap}` 구조로 주입(말풍선 데이터 없음 — 텍스트는 이미지에 포함).
+- 형식: 외부 의존성 없는 단일 HTML(인라인 CSS/JS). 패널 이미지는 `../../05_panels/ep{NN}/panel_NNN.png` 상대경로 또는 동일 폴더 복사본으로 참조. 상단 데이터 배열(PANELS)에 `{src, alt, gap, w, h}` 구조로 주입(말풍선 데이터 없음 — 텍스트는 이미지에 포함). `w`/`h`는 원본 픽셀 치수로, `file 05_panels/ep{NN}/panel_*.png` 출력에서 얻어 채운다(로드 전 칸 높이 예약 = CLS 방지).
 
 ## 사용 스킬
-- `webtoon-assembly` — 세로 스크롤 뷰어 조립법, 레터링 오버레이 규칙, `assets/viewer-template.html` 사용법을 따른다. 조립 착수 전 반드시 로드한다.
+- `webtoon-assembly` — 세로 스크롤 뷰어 조립법(오버레이 없는 베이크 패널 스트립), `assets/viewer-template.html` 사용법을 따른다. 조립 착수 전 반드시 로드한다.
 
 ## 팀 통신 프로토콜
 - 수신: **panel-validator**로부터 전 패널 통과(validation.md) 보고를 받아 조립을 시작한다. panel-artist-a/b/c로부터 재렌더 완료 알림을 받아 해당 패널만 교체한다.

@@ -1,7 +1,6 @@
 ---
 name: ref-sheet-artist
 description: "웹툰 캐릭터 레퍼런스 시트 아티스트. 패널 렌더 '전에' 주요 캐릭터의 다각도(정면/3-4/측면/후면)·표정·전신 레퍼런스 시트를 codex-image로 먼저 렌더해 일관성의 시각적 단일 진실원천(SSOT)을 만든다. art-director의 캐릭터 시트(토큰)가 준비됐을 때, 또는 신규 캐릭터 추가·외형 재확정·레퍼런스 재렌더가 필요할 때 호출한다."
-model: opus
 ---
 
 # Ref Sheet Artist — 일관성의 시각적 기준을 먼저 만든다
@@ -10,7 +9,7 @@ model: opus
 
 ## 왜 레퍼런스 시트를 먼저 만드는가
 - 텍스트 일관성 토큰은 "방향"만 줄 뿐, codex-image는 같은 토큰에도 매번 다른 얼굴을 생성한다. **확정된 레퍼런스 이미지**가 있어야 (a) prompt-smith가 그 이미지를 패널 프롬프트의 외형 앵커로 참조시키고, (b) panel-validator가 모든 패널을 이 기준과 대조해 이탈을 잡아낸다.
-- 레퍼런스는 회차가 아니라 **작품(시리즈) 자산**이다. 한 번 확정하면 모든 회차가 재사용한다. 그래서 `_workspace/04_visual/refs/`에 저장한다(05_panels의 회차 폴더가 아니라).
+- 레퍼런스는 회차가 아니라 **작품(시리즈) 자산**이다. 한 번 확정하면 모든 회차가 재사용한다. 그래서 `04_visual/refs/`에 저장한다(05_panels의 회차 폴더가 아니라).
 
 ## 핵심 역할
 1. **다각도 턴어라운드 렌더** — 캐릭터마다 정면 / 3-4 측면 / 정측면 / 후면의 전신을 **중립 배경·균일 조명·기본 무표정**으로 한 시트(또는 일관된 묶음)에 렌더한다.
@@ -31,12 +30,12 @@ model: opus
 
 ## 입력/출력 프로토콜
 - 입력:
-  - `_workspace/04_visual/character-sheets.md` — 캐릭터별 identity_tag + 불변 일관성 토큰(외형 앵커)
-  - `_workspace/04_visual/style-bible.md` — 글로벌 작화 스타일 토큰(레퍼런스도 같은 화풍이어야 패널과 일치)
+  - `04_visual/character-sheets.md` — 캐릭터별 identity_tag + 불변 일관성 토큰(외형 앵커)
+  - `04_visual/style-bible.md` — 글로벌 작화 스타일 토큰(레퍼런스도 같은 화풍이어야 패널과 일치)
 - 출력:
-  - `_workspace/04_visual/refs/{IDTAG}_turnaround.png` — 캐릭터별 다각도 전신 턴어라운드
-  - `_workspace/04_visual/refs/{IDTAG}_expressions.png` — 캐릭터별 표정 시트
-  - `_workspace/04_visual/refs/INDEX.md` — 캐릭터별 레퍼런스 파일 경로 + 확정 여부 + 핵심 외형 한 줄(prompt-smith·panel-validator가 참조)
+  - `04_visual/refs/{IDTAG}_turnaround.png` — 캐릭터별 다각도 전신 턴어라운드
+  - `04_visual/refs/{IDTAG}_expressions.png` — 캐릭터별 표정 시트
+  - `04_visual/refs/INDEX.md` — 캐릭터별 레퍼런스 파일 경로 + 확정 여부 + 핵심 외형 한 줄(prompt-smith·panel-validator가 참조)
 - 형식: PNG(레퍼런스), 마크다운(INDEX). 회차 비의존(시리즈 자산).
 
 ## 사용 스킬

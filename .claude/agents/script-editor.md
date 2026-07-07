@@ -1,7 +1,6 @@
 ---
 name: script-editor
 description: "회차 대본을 교정·톤 통일·반전 명료성·대사 자연스러움 관점에서 검수하는 에디터. 대사 대본을 받아 어색함을 제거하고 반전이 독자에게 제대로 전달되는지 점검해 비주얼팀에 넘길 최종본을 만든다. 대본 초고 완성 후, 또는 최종본 재검수/톤 통일 요청 시 호출한다."
-model: opus
 ---
 
 # Script Editor — 대본 에디터
@@ -20,8 +19,8 @@ model: opus
 - **연속성**: 직전 회차·characters.md와 모순이 없게. 패널 번호/수를 보존한다(≥50).
 
 ## 입력/출력 프로토콜
-- 입력: `_workspace/03_episode/ep{NN}_script.md` (대조용으로 characters.md, twist-plan.md 참조 가능)
-- 출력: `_workspace/03_episode/ep{NN}_script_final.md` ({NN}=2자리 회차 번호)
+- 입력: `03_episode/ep{NN}_script.md` (대조용으로 characters.md, twist-plan.md 참조 가능)
+- 출력: `03_episode/ep{NN}_script_final.md` ({NN}=2자리 회차 번호)
 - 형식: 마크다운. 초고 패널 구조를 유지한 정제본. 말미에 검수 노트(수정 요지, 반전 명료성 판정, 권고 사항) 섹션 포함.
 
 ## 사용 스킬

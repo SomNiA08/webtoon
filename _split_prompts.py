@@ -1,7 +1,18 @@
+"""Split a panel prompts markdown into one prompt .txt per panel for _render.sh.
+
+Usage: python _split_prompts.py <prompts_md> <outdir>
+  e.g. python _split_prompts.py 04_visual/ep01_prompts.md _render_jobs/panels
+
+Expected input format (per panel):
+  ### panel_001
+  - ...
+  - prompt: "<single-line prompt, \" escaped>"
+"""
 import re, os, sys
 
-src = r"C:\Users\somni\Desktop\webtoon-harness-main\_workspace\04_visual\ep01_prompts.md"
-outdir = r"C:\Users\somni\Desktop\webtoon-harness-main\_workspace\_render_jobs\panels"
+if len(sys.argv) != 3:
+    sys.exit(f"usage: {sys.argv[0]} <prompts_md> <outdir>")
+src, outdir = sys.argv[1], sys.argv[2]
 os.makedirs(outdir, exist_ok=True)
 
 text = open(src, encoding="utf-8").read()
@@ -17,14 +28,10 @@ while i < len(lines):
         cur = m.group(1)
     mp = re.match(r'^\s*-\s*prompt:\s*"(.*)$', line)
     if mp and cur:
-        # prompt may be a single long line ending with closing quote
-        body = mp.group(1)
-        # accumulate until we hit a line that is the output: marker (prompt is single-line here)
-        # strip trailing closing quote
-        prompt = body
+        # prompt is a single long line ending with a closing quote
+        prompt = mp.group(1)
         if prompt.endswith('"'):
             prompt = prompt[:-1]
-        # unescape \" -> "
         prompt = prompt.replace('\\"', '"')
         fn = os.path.join(outdir, f"panel_{cur}.txt")
         with open(fn, "w", encoding="utf-8") as f:

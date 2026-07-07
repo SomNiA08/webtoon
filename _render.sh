@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Webtoon render driver: codex generates, we copy. Concurrency <= 5.
-# Usage: render.sh <jobsdir> <outdir>
+# Usage: _render.sh <jobsdir> <outdir>
 #   jobsdir: directory of NAME.txt files, each holding one full codex prompt
 #   outdir : where to write NAME.png
 set -u
-REPO="C:/Users/somni/Desktop/webtoon-harness-main"
-GEN="C:/Users/somni/.codex/generated_images"
+REPO="$(cd "$(dirname "$0")" && pwd)"
+GEN="${CODEX_GEN_DIR:-$HOME/.codex/generated_images}"
 JOBSDIR="$1"
 OUTDIR="$2"
-LOGDIR="$REPO/_workspace/_render_logs"
+LOGDIR="$REPO/_render_logs"
 mkdir -p "$LOGDIR" "$OUTDIR"
 
 SUFFIX=$'\n\n(Use the image_generation tool to create exactly ONE image for the above. Do NOT copy, move, or write any file yourself. After the image is generated, output the absolute path of the generated PNG file on the final line.)'
@@ -49,3 +49,10 @@ for f in "$JOBSDIR"/*.txt; do
 done
 wait
 echo "==== DONE ($n launched) ===="
+
+# post-pass integrity summary: zero-byte + md5 duplicates (EP01 real incidents)
+zero="$(find "$OUTDIR" -name '*.png' -size 0 2>/dev/null)"
+[ -n "$zero" ] && printf 'WARN zero-byte PNG:\n%s\n' "$zero"
+dups="$(md5sum "$OUTDIR"/*.png 2>/dev/null | awk '{print $1}' | sort | uniq -d)"
+[ -n "$dups" ] && echo "WARN md5 duplicates detected — delete the duplicated panel(s) and re-run: $dups"
+exit 0

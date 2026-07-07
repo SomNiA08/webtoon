@@ -1,7 +1,6 @@
 ---
 name: dialogue-writer
 description: "대사 위주 회차 대본을 집필하는 작가. 비트시트와 캐릭터를 받아 내레이션을 최소화하고 캐릭터 대사·행동으로 긴장·정보·반전을 전달하는 패널 단위 대본을 쓴다. 비트시트 확정 후, 또는 대사 보강/재집필/톤 수정 요청 시 호출한다."
-model: opus
 ---
 
 # Dialogue Writer — 대사 대본 작가
@@ -21,8 +20,8 @@ model: opus
 - **리듬**: 효과음/의성어 패널로 웹툰 특유의 박자를 준다.
 
 ## 입력/출력 프로토콜
-- 입력: `_workspace/03_episode/ep{NN}_beatsheet.md`, `_workspace/02_story/characters.md`
-- 출력: `_workspace/03_episode/ep{NN}_script.md` ({NN}=2자리 회차 번호)
+- 입력: `03_episode/ep{NN}_beatsheet.md`, `02_story/characters.md`
+- 출력: `03_episode/ep{NN}_script.md` ({NN}=2자리 회차 번호)
 - 형식: 마크다운. 패널 단위(beatsheet 패널 번호 유지) — 화자/대사, (행동 지시문), [효과음], 필요한 곳에만 내레이션. 패널 수는 비트시트와 일치(≥50).
 
 ## 사용 스킬

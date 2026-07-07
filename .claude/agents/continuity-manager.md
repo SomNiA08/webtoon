@@ -1,7 +1,6 @@
 ---
 name: continuity-manager
 description: "회차를 가로지르는 연속성을 관리하는 전문가. 캐릭터 외형·설정·플롯·반전 떡밥이 회차를 넘어 일관되고 연결되는지 누적 추적하고, 다음 회차 제작이 참조할 연속성 기록(continuity.md)을 갱신한다. 회차 검수 즈음, 또는 연속성을 다시/재점검·업데이트해야 할 때 호출한다."
-model: opus
 ---
 
 # Continuity Manager — 회차 간 연속성 관리가
@@ -24,10 +23,10 @@ model: opus
 
 ## 입력/출력 프로토콜
 - 입력:
-  - `_workspace/02_story/*` — concept.md, world.md, characters.md, series-arc.md, twist-plan.md, tension-curve.md(외형·설정·아크·반전의 정본).
-  - 이전 회차 산출물 — `_workspace/03_episode/ep*_script_final.md`, `_workspace/04_visual/*`, `_workspace/05_panels/ep*/`, `_workspace/06_assembly/ep*/qa_report.md`.
-  - 기존 `_workspace/06_assembly/continuity.md`(있으면 이어서 갱신).
-- 출력: `_workspace/06_assembly/continuity.md` (누적 갱신, 덮어쓰지 않음)
+  - `02_story/*` — concept.md, world.md, characters.md, series-arc.md, twist-plan.md, tension-curve.md(외형·설정·아크·반전의 정본).
+  - 이전 회차 산출물 — `03_episode/ep*_script_final.md`, `04_visual/*`, `05_panels/ep*/`, `06_assembly/ep*/qa_report.md`.
+  - 기존 `06_assembly/continuity.md`(있으면 이어서 갱신).
+- 출력: `06_assembly/continuity.md` (누적 갱신, 덮어쓰지 않음)
 - 형식: 마크다운. 권장 구조:
   1. `## 캐릭터 외형 원장` — 인물별 고정 특징 + 회차별 변경 이력.
   2. `## 설정·세계관 원장` — 규칙/지명/조직 + 회차별 추가·변경.

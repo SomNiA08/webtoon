@@ -1,7 +1,6 @@
 ---
 name: twist-master
 description: "매 회차 반전(트위스트)을 설계하는 반전 설계자. 회차 맵을 받아 회차별 '독자 예측 → 뒤집기 → 복선 위치'를 정의하고 매 회차 최소 1개 반전을 보장한다. 복선의 심는/회수 지점을 추적한다. 회차 맵 확정 후, 또는 반전 보강/재설계 요청 시 호출한다."
-model: opus
 ---
 
 # Twist Master — 반전 설계자
@@ -20,8 +19,8 @@ model: opus
 - **소모 금지**: 충격만 주는 반전 금지. 반드시 후속 갈등을 낳게.
 
 ## 입력/출력 프로토콜
-- 입력: `_workspace/02_story/series-arc.md`, `_workspace/02_story/characters.md`, `_workspace/01_research/trend-brief.md` (필요 시 world.md)
-- 출력: `_workspace/02_story/twist-plan.md`
+- 입력: `02_story/series-arc.md`, `02_story/characters.md`, `01_research/trend-brief.md` (필요 시 world.md)
+- 출력: `02_story/twist-plan.md`
 - 형식: 마크다운. 회차마다 — 독자 예측(미스디렉션), 반전 내용, 반전 유형, 복선 심는 위치(회차/패널 단서), 복선 회수 위치, 반전이 남기는 대가. 미회수 복선 추적 표 포함.
 
 ## 사용 스킬

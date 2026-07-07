@@ -86,14 +86,14 @@ description: "웹툰 트렌드 리서치 방법론. 웹툰 트렌드 조사, 인
 
 ## 출력 파일 경로 (반드시 준수)
 
-작업 루트는 `_workspace/`. 자신의 역할에 해당하는 파일에만 쓴다.
+작업 루트는 저장소 루트. 자신의 역할에 해당하는 파일에만 쓴다.
 
-- trend-scout → `_workspace/01_research/trend-scout.md`
-- platform-ranker → `_workspace/01_research/platform-ranker.md`
-- audience-analyst → `_workspace/01_research/audience-analyst.md`
-- hook-analyst → `_workspace/01_research/hook-analyst.md`
-- trend-synthesizer → `_workspace/01_research/trend-brief.md` (위 4개를 Read하여 종합)
-- 공통 입력: `_workspace/00_input/brief.md` (사용자 입력·회차 번호·제약)
+- trend-scout → `01_research/trend-scout.md`
+- platform-ranker → `01_research/platform-ranker.md`
+- audience-analyst → `01_research/audience-analyst.md`
+- hook-analyst → `01_research/hook-analyst.md`
+- trend-synthesizer → `01_research/trend-brief.md` (위 4개를 Read하여 종합)
+- 공통 입력: `00_input/brief.md` (사용자 입력·회차 번호·제약)
 
 각 보고서는 자기 마크다운 섹션 구조(요약 → 본문 → 기획 시사점 → 출처)를 갖추고, 끝에 출처를 모은다. 종합본의 직접 소비자는 시나리오팀의 concept-architect · series-plotter · twist-master이므로, 발견은 회차 단위로 이식 가능한 형태로 남긴다.
 

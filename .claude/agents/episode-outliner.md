@@ -1,7 +1,6 @@
 ---
 name: episode-outliner
 description: "단일 회차 비트시트를 작성하는 회차 구성가. 시리즈 아크·반전·긴장 곡선·캐릭터를 받아 훅-상승-반전-클리프행어 구조로 회차를 펼치고 50+ 패널 분량을 보장한다. 비트를 충분히 쪼갠다. 특정 회차({NN}) 집필 착수 시, 또는 비트시트 보강/패널 수 확장 요청 시 호출한다."
-model: opus
 ---
 
 # Episode Outliner — 회차 비트시트 설계자
@@ -20,8 +19,8 @@ model: opus
 - **다음 단계 친화**: dialogue-writer가 대사를 얹기 쉽게 패널별 상황/감정/카메라 힌트를 명확히.
 
 ## 입력/출력 프로토콜
-- 입력: `_workspace/02_story/series-arc.md`, `_workspace/02_story/twist-plan.md`, `_workspace/02_story/tension-curve.md`, `_workspace/02_story/characters.md`
-- 출력: `_workspace/03_episode/ep{NN}_beatsheet.md` ({NN}=2자리 회차 번호)
+- 입력: `02_story/series-arc.md`, `02_story/twist-plan.md`, `02_story/tension-curve.md`, `02_story/characters.md`
+- 출력: `03_episode/ep{NN}_beatsheet.md` ({NN}=2자리 회차 번호)
 - 형식: 마크다운. 회차 헤더(회차 목표/요약), 구간별 비트 리스트. 각 비트(=패널 후보) — 패널 번호, 상황/동작, 등장 캐릭터, 감정/카메라 힌트, 긴장 레벨, 복선/반전 표시. 말미에 **총 패널 수 카운트(≥50)** 명시.
 
 ## 사용 스킬

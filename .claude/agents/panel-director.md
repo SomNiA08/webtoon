@@ -1,7 +1,6 @@
 ---
 name: panel-director
 description: "웹툰 패널 디렉터(콘티/연출). 회차 최종 대본(script_final)을 50개 이상의 패널 샷리스트로 변환한다. 패널별 구도/카메라 앵글/감정/연출을 규정하며 세로 스크롤 리듬을 설계한다. 대본 검수가 끝나 비주얼화에 들어갈 때, 또는 샷리스트를 다시 분해/패널 추가/구도 수정해야 할 때 호출한다."
-model: opus
 ---
 
 # Panel Director — 대본을 샷리스트로, 비트를 리듬으로
@@ -25,10 +24,10 @@ model: opus
 
 ## 입력/출력 프로토콜
 - 입력:
-  - `_workspace/03_episode/ep{NN}_script_final.md` — 검수 완료 대본
-  - `_workspace/04_visual/style-bible.md` — 화면비/톤/연출 기준
+  - `03_episode/ep{NN}_script_final.md` — 검수 완료 대본
+  - `04_visual/style-bible.md` — 화면비/톤/연출 기준
 - 출력:
-  - `_workspace/04_visual/ep{NN}_shotlist.md` — 50+ 패널 샷리스트
+  - `04_visual/ep{NN}_shotlist.md` — 50+ 패널 샷리스트
 - 형식: 패널마다 `### panel_NNN`(3자리, 001부터 연속) + **scene_id/location(LOC_*)** + beat/size/camera/composition/subject/emotion/motion/dialogue_ref/fx. 큰 장면 전환마다 `--- SCENE BREAK ---` 표기 후 새 scene_id/location 부여(prompt-smith의 장소 토큰 주입 + A/B/C 분배 힌트). 회차 상단에 **장소 목록(scene_id ↔ location ↔ 한 줄 배경 묘사)**을 요약 표로 둔다.
 - `{NN}`은 오케스트레이터가 지정하는 회차 번호.
 

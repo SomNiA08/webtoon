@@ -136,17 +136,17 @@ description: "웹툰 시나리오·스토리·대본을 설계/집필할 때 반
 
 ## 12. 출력 경로 (HARNESS_CONTRACT §3 준수)
 
-작업 루트 `_workspace/`. {NN}=2자리 회차. 각 에이전트는 자기 출력만 쓴다.
+작업 루트는 저장소 루트. {NN}=2자리 회차. 각 에이전트는 자기 출력만 쓴다.
 
-- concept-architect → `_workspace/02_story/concept.md`
-- worldbuilder → `_workspace/02_story/world.md`
-- character-designer → `_workspace/02_story/characters.md`
-- series-plotter → `_workspace/02_story/series-arc.md`
-- twist-master → `_workspace/02_story/twist-plan.md`
-- tension-engineer → `_workspace/02_story/tension-curve.md`
-- episode-outliner → `_workspace/03_episode/ep{NN}_beatsheet.md`
-- dialogue-writer → `_workspace/03_episode/ep{NN}_script.md`
-- script-editor → `_workspace/03_episode/ep{NN}_script_final.md` (비주얼팀 panel-director의 입력)
+- concept-architect → `02_story/concept.md`
+- worldbuilder → `02_story/world.md`
+- character-designer → `02_story/characters.md`
+- series-plotter → `02_story/series-arc.md`
+- twist-master → `02_story/twist-plan.md`
+- tension-engineer → `02_story/tension-curve.md`
+- episode-outliner → `03_episode/ep{NN}_beatsheet.md`
+- dialogue-writer → `03_episode/ep{NN}_script.md`
+- script-editor → `03_episode/ep{NN}_script_final.md` (비주얼팀 panel-director의 입력)
 
 ## 13. 최종 품질 체크리스트 (출력 전 자가검증)
 

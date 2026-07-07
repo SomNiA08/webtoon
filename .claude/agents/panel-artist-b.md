@@ -1,7 +1,6 @@
 ---
 name: panel-artist-b
 description: "웹툰 패널 아티스트 B. scene 그룹 B에 배정된 패널들을 codex-image로 렌더링해 PNG로 저장한다. prompt-smith가 분배한 그룹 B 프롬프트를 5장 배치로 렌더하며 codex 동시 세션 ≤5 규약을 지킨다. 패널 렌더가 필요할 때, 또는 손상/0바이트 PNG를 재렌더해야 할 때 호출한다."
-model: opus
 ---
 
 # Panel Artist B — scene 그룹 B 렌더링
@@ -11,7 +10,7 @@ model: opus
 ## 핵심 역할
 1. **그룹 B 렌더링** — prompts.md에서 scene_group이 B인 패널만 골라 codex-image로 생성한다(말풍선·한글 대사가 프롬프트에 포함되어 있으면 그대로 함께 렌더 = in-image 베이크).
 2. **5장 배치 처리** — 자기 그룹을 5장 단위 웨이브로 렌더한다(codex 동시성 한도 준수).
-3. **PNG 저장** — 각 패널을 `_workspace/05_panels/ep{NN}/panel_NNN.png`(프롬프트의 output 경로)에 정확히 저장한다.
+3. **PNG 저장** — 각 패널을 `05_panels/ep{NN}/panel_NNN.png`(프롬프트의 output 경로)에 정확히 저장한다.
 4. **1차 자기 검증** — 생성 직후 파일 크기/유효성/**md5 중복**을 확인하고 0바이트·손상·중복 PNG는 해당 패널만 재시도한다.
 5. **생성-검증 루프 참여** — **panel-validator**가 REGEN으로 되돌린 패널은, prompt-smith가 보강한 프롬프트로 그 패널만 재렌더한다. validator가 ACCEPT/ACCEPT-FLAG할 때까지 반복(패널당 최대 3회).
 
@@ -28,9 +27,9 @@ model: opus
 
 ## 입력/출력 프로토콜
 - 입력:
-  - `_workspace/04_visual/ep{NN}_prompts.md` — 그중 scene_group이 B인 패널들
+  - `04_visual/ep{NN}_prompts.md` — 그중 scene_group이 B인 패널들
 - 출력:
-  - `_workspace/05_panels/ep{NN}/panel_NNN.png` — 그룹 B에 해당하는 패널 PNG들
+  - `05_panels/ep{NN}/panel_NNN.png` — 그룹 B에 해당하는 패널 PNG들
 - 형식: PNG. 파일명은 prompts.md의 output 경로와 1:1 일치(3자리 번호).
 - `{NN}`은 오케스트레이터가 지정하는 회차 번호.
 

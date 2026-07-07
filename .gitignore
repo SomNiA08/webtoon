@@ -6,6 +6,7 @@
 # 작업 산출물 (하네스 실행 시 생성되는 중간 결과물/렌더 이미지)
 _workspace/
 _workspace_*/
+_archive/
 RELEASE/
 05_panels/
 **/*.png
@@ -14,6 +15,11 @@ RELEASE/
 # 문서용 인포그래픽은 예외 (README 임베드)
 !docs/images/
 !docs/images/*.png
+
+# 캐릭터 레퍼런스 시트는 예외 — 시리즈 외형 일관성의 SSOT 자산(유실 시 시리즈 닻 소실)
+!04_visual/refs/
+!04_visual/refs/*.png
+!04_visual/refs/INDEX.md
 
 # 로그/임시
 *.log

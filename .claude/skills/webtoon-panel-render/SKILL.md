@@ -30,11 +30,10 @@ codex features list | grep image_generation    # stable/true 확인
 패널보다 먼저, 주요 캐릭터의 **다각도/표정 레퍼런스 시트**를 렌더해 시리즈 외형 기준을 확정한다. 이것이 모든 패널 일관성과 검증의 닻이다.
 
 - 입력: `04_visual/character-sheets.md`(불변 토큰), `style-bible.md`(작화 스타일).
-- 캐릭터마다 2장 권장:
-  - `refs/{IDTAG}_turnaround.png` — 정면/3-4/측면/후면 **전신**, 중립 단색 배경, 균일 조명, 무표정.
-  - `refs/{IDTAG}_expressions.png` — 핵심 표정 3~4종 클로즈업.
+- **기본: 캐릭터당 통합 1장** `refs/{IDTAG}_ref.png` — 정면/3-4/측면/후면 **전신 턴어라운드** + **핵심 표정 3~4종 클로즈업**을 한 모델 시트에. 중립 단색 배경·균일 조명. (EP01 실전 검증: 7캐릭터 × 1장으로 충분 — 렌더 수 절반, 턴어라운드↔표정 간 동일인 불일치 리스크 제거.)
+- 예외(2장 분리): 표정 연기가 서사 핵심인 주연이 1장으로 판독 어려울 때만 `{IDTAG}_turnaround.png` + `{IDTAG}_expressions.png` — 두 장 동일인 교차 확인 필수.
 - 레퍼런스 프롬프트 규약:
-  - 글로벌 작화 스타일 토큰 + 캐릭터 불변 토큰 + "character reference sheet, multiple angles (front, 3/4, side, back), full body, neutral grey background, even flat lighting, model sheet".
+  - 글로벌 작화 스타일 토큰 + 캐릭터 불변 토큰 + "character reference sheet, multiple angles (front, 3/4, side, back), full body, plus 3-4 facial expression close-ups, neutral grey background, even flat lighting, model sheet".
   - **식별 표식(점/흉터/팔찌 등)을 또렷이**, 좌/우 위치 고정.
   - 레퍼런스만은 **텍스트 없이**: `no text, no labels, no speech bubbles, no watermark`(깨끗한 외형 도감이어야 기준이 된다 — 패널의 in-image 말풍선과 반대).
 - 저장: `04_visual/refs/`(회차 폴더가 아니라 **시리즈 자산**, 다음 회차 재사용). `refs/INDEX.md`에 캐릭터별 경로+핵심 외형 한 줄+확정 여부 기록.

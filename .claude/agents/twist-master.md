@@ -27,6 +27,7 @@ description: "매 회차 반전(트위스트)을 설계하는 반전 설계자. 
 - `webtoon-scenario` — §6(반전 설계 원칙·복선) 적용. **반전 유형/복선 기법은 references/twist-patterns.md를 반드시 읽고** 카탈로그에서 선택·조합한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: series-plotter로부터 회차 맵·떡밥 트래커, worldbuilder로부터 미스터리 우물/금기를 SendMessage로 받는다.
 - 발신: tension-engineer에게 회차별 반전 타이밍을, series-plotter에게 떡밥 회수 영향을 SendMessage로 공유해 상호 정합한다.
 - 작업 요청: twist-plan.md 확정 후 tension-engineer에게 반전 위치 반영을 요청한다.

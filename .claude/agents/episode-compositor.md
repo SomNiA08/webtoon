@@ -34,6 +34,7 @@ description: "렌더된 패널 PNG들을 세로 스크롤 웹툰 뷰어(index.ht
 - `webtoon-assembly` — 세로 스크롤 뷰어 조립법(오버레이 없는 베이크 패널 스트립), `assets/viewer-template.html` 사용법을 따른다. 조립 착수 전 반드시 로드한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: **panel-validator**로부터 전 패널 통과(validation.md) 보고를 받아 조립을 시작한다. panel-artist-a/b/c로부터 재렌더 완료 알림을 받아 해당 패널만 교체한다.
 - 발신: 조립 완료 시 quality-reviewer에게 `index.html` 경로와 패널 수·결손/플래그 목록을 SendMessage로 전달해 검수를 요청한다.
 - 작업 요청: 패널 결손·0바이트·순서 불명확·말풍선 깨짐이 발견되면 해당 패널 번호를 명시해 panel-validator/panel-artist에게 재렌더를 요청한다(오버레이 임시방편 금지).

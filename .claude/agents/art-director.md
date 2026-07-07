@@ -38,6 +38,7 @@ description: "웹툰 비주얼 프로덕션팀의 아트 디렉터이자 팀 리
 - `webtoon-panel-breakdown` — 작업 B(스타일 바이블 + 일관성 토큰) 섹션을 따라 style-bible/character-sheets를 작성한다. 일관성 토큰 만드는 법(B-3)과 캐릭터 시트 구조(B-2)를 그대로 적용한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: 시나리오팀(character-designer/worldbuilder)의 산출물은 02_story/에서 Read로 직접 읽는다. 사용자/오케스트레이터로부터 화풍 방향 지시를 받는다. **ref-sheet-artist**로부터 레퍼런스 시트 확정 보고를 받아 검수한다.
 - 발신:
   - character-sheets 확정 즉시 **ref-sheet-artist**에게 다각도/표정 레퍼런스 시트 렌더를 지시한다(식별 표식·각도·표정 범위 포함). 레퍼런스는 패널 렌더 전에 확정한다.

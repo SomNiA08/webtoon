@@ -38,6 +38,7 @@ description: "회차를 가로지르는 연속성을 관리하는 전문가. 캐
 - `webtoon-assembly` — 연속성 관리 방법(원장 구조, 떡밥 추적, 다음 회차 참조 기록)을 따른다. 착수 전 반드시 로드한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: quality-reviewer로부터 회차 내 외형/설정 일관성 판정을, showrunner로부터 다음 회차 시드 검토 요청을 SendMessage로 받는다.
 - 발신:
   - 회차 간 모순·미회수 떡밥을 발견하면 시나리오팀(series-plotter·twist-master)과 비주얼팀(art-director)에 SendMessage로 알린다.

@@ -35,6 +35,7 @@ description: "웹툰 패널 디렉터(콘티/연출). 회차 최종 대본(scrip
 - `webtoon-panel-breakdown` — 작업 A(패널 분해/샷리스트) 섹션을 따른다. 분해 원칙(A-1), 50패널 보장 체크(A-2), 항목 형식(A-3), 그리고 references/composition-grammar.md의 size/camera/composition 어휘를 사용한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: **art-director**로부터 SendMessage로 일관성 토큰/화면비/톤 규약 + **장소 고정 토큰(LOC_*) 목록**을 받아 연출·scene_id/location에 반영한다.
 - 발신: 샷리스트 완성 시 **prompt-smith**에게 SCENE BREAK·scene_id/location·총 패널 수를 통지해 장소 토큰 주입과 A/B/C 균등 분배를 돕는다. **letterer**에게 dialogue_ref가 채워진 샷리스트 위치를 알린다. 새 장소가 필요하면 **art-director**에 LOC_* 토큰 추가를 요청한다.
 - 작업 요청: 대본의 비트가 모호하거나 반전이 약하면 시나리오팀(script-editor)에 명료화를 요청한다.

@@ -39,6 +39,7 @@ description: "리서치팀 종합가. trend-scout·platform-ranker·audience-ana
 - `webtoon-trend-research` — 종합 브리프의 권장 구조(장르·톤·구조·차별점·리스크)와 상충 정보 출처 병기 규약을 따른다. 종합 착수 전 로드한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: 4인 조사자(trend-scout·platform-ranker·audience-analyst·hook-analyst)가 작업 완료를 알리면 종합을 시작한다. 진행 중 발견 하이라이트도 SendMessage로 받는다.
 - 발신: 종합 중 특정 조사가 불완전하거나 충돌하면 해당 조사자에게 SendMessage로 보강·확인을 요청한다(예: "platform-ranker, 결제 컷오프 회차 수치 확인 요청").
 - 작업 요청: 데이터 공백이 결론을 막으면 담당 조사자에게 추가 조사를 요청하고, 불가하면 "확인 필요"로 남긴다.

@@ -32,6 +32,7 @@ description: "전체 품질을 총괄하고 회차를 최종 사인오프하는 
 - `webtoon-assembly` — 최종 패키징 구조, 사인오프 기준, 다음 회차 시드 작성법을 따른다. 착수 전 반드시 로드한다.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: quality-reviewer로부터 종합 PASS와 `qa_report.md`를, continuity-manager로부터 `continuity.md` 요지와 다음 회차 시드 후보를 SendMessage로 받는다.
 - 발신:
   - 재작업이 필요하면 책임 에이전트(episode-compositor/panel-artist/letterer/script-editor 등)에게 사유와 함께 재작업을 SendMessage로 지시한다.

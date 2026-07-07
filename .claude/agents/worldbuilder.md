@@ -27,6 +27,7 @@ description: "웹툰의 세계관·규칙·설정을 설계하는 월드빌더. 
 - `webtoon-scenario` — §2(세계관 설계) 적용. 장르 규칙 패턴이 필요하면 references/genre-tropes.md 참조.
 
 ## 팀 통신 프로토콜
+- **단독 스폰 폴백**: 팀 메시지 도구(SendMessage 등)가 없는 단독 Agent 스폰 환경에서는 메시지 전송을 시도하지 않는다 — 입력은 지시받은 경로의 파일을 Read로 읽고, 인계는 산출물 파일 저장 + 최종 보고 텍스트로 대신한다(파일 기반 통신).
 - 수신: concept-architect로부터 확정 컨셉/톤/엔진을 SendMessage로 받는다.
 - 발신: character-designer에게 세계 규칙(능력/제약)을 전달하고, twist-master에게 미스터리 우물·금기 목록을 공유해 반전 연료로 쓰게 한다.
 - 작업 요청: world.md 확정 후 character-designer 착수를 요청한다.

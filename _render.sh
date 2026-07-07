@@ -13,8 +13,11 @@
 # batch of 5, so every wave stalled on its slowest render — 150s vs 450s spread.)
 # Rolling needs `wait -n` (bash >= 4.3); older bash falls back to wave mode.
 # Retry: panels that FAILed THIS pass (never pre-existing SKIPs) are retried
-# ONCE under the same window; retry launches are labeled "RETRY name" and log
-# to NAME.retry.log so the first failure log is kept for the audit trail.
+# ONCE, immediately in the SAME slot (in-window). The old post-pass retry wave
+# made a panel that failed at minute 2 wait for the whole pass (~26 min for 50
+# panels) before retrying; in-window retry hides that latency inside the window.
+# Retry launches are labeled "RETRY name" and log to NAME.retry.log so the
+# first failure log is kept for the audit trail.
 set -u
 REPO="$(cd "$(dirname "$0")" && pwd)"
 GEN="${CODEX_GEN_DIR:-$HOME/.codex/generated_images}"
@@ -78,8 +81,24 @@ render_one() {
   fi
 }
 
+# retry markers for this pass (background jobs can't set parent variables)
+RETRYDIR="$(mktemp -d)"
+trap 'rm -rf "$RETRYDIR"' EXIT
+
+# one slot = first attempt + (only if it FAILed) one immediate retry in the
+# same slot, so retries overlap the rest of the pass instead of forming a
+# post-pass tail. (Wave fallback: a retry extends its wave by one render.)
+render_job() {
+  local name="$1" promptfile="$2"
+  render_one "$name" "$promptfile"
+  if [ ! -s "$OUTDIR/$name.png" ]; then
+    : > "$RETRYDIR/$name"
+    echo "RETRY $name"
+    render_one "$name" "$promptfile" ".retry"
+  fi
+}
+
 n=0
-launched=()
 for f in "$JOBSDIR"/*.txt; do
   [ -e "$f" ] || continue
   name="$(basename "$f" .txt)"
@@ -89,41 +108,23 @@ for f in "$JOBSDIR"/*.txt; do
     # rolling window: block until a slot frees, then launch immediately
     while [ "$(jobs -rp | wc -l)" -ge "$MAXC" ]; do wait -n || true; done
   fi
-  render_one "$name" "$f" &
-  launched+=("$name")
+  render_job "$name" "$f" &
   n=$((n+1))
   # wave fallback (bash < 4.3): wait for the whole batch every MAXC launches
   if [ "$ROLLING" -eq 0 ] && [ $((n % MAXC)) -eq 0 ]; then wait; fi
 done
 wait
 
-# bounded retry: collect panels that FAILed THIS pass (missing/empty PNG among
-# the jobs launched above — SKIPped panels never enter `launched`) and retry
-# them exactly once, respecting the same concurrency window.
-retry_list=()
-if [ "$n" -gt 0 ]; then
-  for name in "${launched[@]}"; do
-    [ -s "$OUTDIR/$name.png" ] || retry_list+=("$name")
-  done
-fi
-retried=${#retry_list[@]}
+# retry summary from markers (SKIPped panels never launch, so markers cover
+# exactly the panels that FAILed their first attempt THIS pass)
+retried=0
 recovered=0
-if [ "$retried" -gt 0 ]; then
-  r=0
-  for name in "${retry_list[@]}"; do
-    if [ "$ROLLING" -eq 1 ]; then
-      while [ "$(jobs -rp | wc -l)" -ge "$MAXC" ]; do wait -n || true; done
-    fi
-    echo "RETRY $name"
-    render_one "$name" "$JOBSDIR/$name.txt" ".retry" &
-    r=$((r+1))
-    if [ "$ROLLING" -eq 0 ] && [ $((r % MAXC)) -eq 0 ]; then wait; fi
-  done
-  wait
-  for name in "${retry_list[@]}"; do
-    [ -s "$OUTDIR/$name.png" ] && recovered=$((recovered+1))
-  done
-fi
+for m in "$RETRYDIR"/*; do
+  [ -e "$m" ] || continue
+  retried=$((retried+1))
+  rname="$(basename "$m")"
+  [ -s "$OUTDIR/$rname.png" ] && recovered=$((recovered+1))
+done
 echo "==== DONE ($n launched) ===="
 if [ "$retried" -gt 0 ]; then echo "==== RETRY ($retried retried, $recovered recovered) ===="; fi
 

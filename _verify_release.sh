@@ -10,6 +10,9 @@
 # Exit 0 = gate passed (sign-off allowed). Non-zero = sign-off must be refused.
 # Perf note: md5 is computed ONCE per tree (single batch call) and reused by
 # checks 3/4/5 — one process spawn per file is slow on Windows (git-bash).
+# Check 2 (zero-byte + PNG signature) runs as ONE python sweep for the same
+# reason (the old per-file head|cmp loop spawned ~2 processes per panel);
+# python absent falls back to that loop.
 set -u
 NN="${1:?usage: _verify_release.sh <NN>}"
 REPO="$(cd "$(dirname "$0")" && pwd)"
@@ -40,16 +43,41 @@ if [ -n "$last" ] && [ "$((10#$last))" -ne "$count" ]; then
   echo "    FAIL: numbering not contiguous (highest panel_$last vs count $count)"; fail=1
 fi
 
-# 2. zero-byte / magic bytes (8-byte signature compare: 2 spawns/file instead of 4)
-zero="$(find "$PANELS" -name 'panel_*.png' -size 0 2>/dev/null)"
-[ -z "$zero" ] && echo "[2] zero-byte: none" || { printf '[2] FAIL zero-byte:\n%s\n' "$zero"; fail=1; }
-printf '\x89PNG\r\n\x1a\n' > "$TMP_SIG"
-bad=0
-for f in "$PANELS"/panel_*.png; do
-  [ -e "$f" ] || continue
-  head -c 8 "$f" | cmp -s -- - "$TMP_SIG" || { echo "    FAIL bad PNG header: $f"; bad=1; }
-done
-[ "$bad" -eq 0 ] && echo "[2] PNG headers: all ok" || fail=1
+# 2. zero-byte / magic bytes — single python sweep (fallback: per-file loop)
+if command -v python >/dev/null 2>&1; then
+  hdr_out="$( (cd "$PANELS" 2>/dev/null && python - <<'PYEOF'
+import glob, os
+sig = b'\x89PNG\r\n\x1a\n'
+for f in sorted(glob.glob('panel_*.png')):
+    if os.path.getsize(f) == 0:
+        print('ZERO ' + f)
+        continue
+    with open(f, 'rb') as fh:
+        if fh.read(8) != sig:
+            print('BADHDR ' + f)
+PYEOF
+) )"
+  zbad=0; hbad=0
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    case "$line" in
+      ZERO\ *)   echo "    FAIL zero-byte: $PANELS/${line#ZERO }"; zbad=1 ;;
+      BADHDR\ *) echo "    FAIL bad PNG header: $PANELS/${line#BADHDR }"; hbad=1 ;;
+    esac
+  done <<< "$hdr_out"
+  [ "$zbad" -eq 0 ] && echo "[2] zero-byte: none" || fail=1
+  [ "$hbad" -eq 0 ] && echo "[2] PNG headers: all ok" || fail=1
+else
+  zero="$(find "$PANELS" -name 'panel_*.png' -size 0 2>/dev/null)"
+  [ -z "$zero" ] && echo "[2] zero-byte: none" || { printf '[2] FAIL zero-byte:\n%s\n' "$zero"; fail=1; }
+  printf '\x89PNG\r\n\x1a\n' > "$TMP_SIG"
+  bad=0
+  for f in "$PANELS"/panel_*.png; do
+    [ -e "$f" ] || continue
+    head -c 8 "$f" | cmp -s -- - "$TMP_SIG" || { echo "    FAIL bad PNG header: $f"; bad=1; }
+  done
+  [ "$bad" -eq 0 ] && echo "[2] PNG headers: all ok" || fail=1
+fi
 
 # 3. md5 duplicates (reuses the batch md5s)
 # note: Windows md5sum emits binary-mode names as "*panel_001.png" — strip the marker

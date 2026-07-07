@@ -15,7 +15,7 @@ _render_logs/   # codex 세션 로그 (감사 추적)
 ## 렌더 드라이버 (공식)
 
 - `python _split_prompts.py 04_visual/ep{NN}_prompts.md _render_jobs/panels` — 프롬프트 분할(프롬프트 없는 패널 헤더가 있으면 exit 1로 실패)
-- `bash _render.sh _render_jobs/panels 05_panels/ep{NN}` — **롤링 동시 5** 렌더(한 장이 끝나면 즉시 다음 장 투입, codex 전역 동시 세션 ≤5 — `RENDER_CONCURRENCY`로 낮추기만 가능), 기존 PNG SKIP이라 재실행 = 누락분만 렌더
+- `bash _render.sh _render_jobs/panels 05_panels/ep{NN}` — **롤링 동시 5** 렌더(한 장이 끝나면 즉시 다음 장 투입, codex 전역 동시 세션 ≤5 — `RENDER_CONCURRENCY`로 낮추기만 가능), 기존 PNG SKIP이라 재실행 = 누락분만 렌더. 행 방지: GNU `timeout` 존재 시 렌더당 `RENDER_TIMEOUT`(기본 900초) 초과 세션은 FAIL 처리로 슬롯 회수, 이번 패스 FAIL분은 1회 자동 재시도(`RETRY` 라인, `*.retry.log`)
 - `bash _resume.sh <jobsdir> <outdir> <목표수> [HH:MM]` — 쿼터 리셋 대기 후 무인 반복 렌더
 - `bash _verify_release.sh {NN}` — 릴리스 게이트(패널 수·손상·md5 중복·매니페스트 정합·RELEASE 사본). **exit 0이 아니면 사인오프 금지**
 
@@ -28,11 +28,12 @@ _render_logs/   # codex 세션 로그 (감사 추적)
 
 ## 성능 규약 (토큰·시간 낭비 금지)
 
-1. **1차 전량 렌더 = `_render.sh` 단일 실행**(롤링 동시 5). panel-artist-a/b/c는 검증 루프의 REGEN 재렌더 분담 담당 — 1차 렌더를 3분할 팬아웃하지 않는다(전역 한도가 5라 이득 없음).
+1. **1차 전량 렌더 = `_render.sh` 단일 실행**(롤링 동시 5) — 단, **카나리아 1웨이브 선통과 후**: 대표 5장(대사 밀도 ≥2·시스템 UI/HUD 1·무대사 1·2인 이상 1)을 먼저 렌더·6축(C3(d) 포함) 선검증하고, 같은 축 결함 ≥2장이면 시스템성으로 보고 prompt-smith가 전 패널 공통 패턴을 정본에서 수정 + 재분할 후 재개한다(EP01 오버레이-룩 13/57장 끝단 발견 사고 재발 방지). panel-artist-a/b/c는 검증 루프의 REGEN 재렌더 분담 담당(누적 ≤5장 웨이브 = 임시 jobsdir + `_render.sh`, 1패널 1호출 금지) — 1차 렌더를 3분할 팬아웃하지 않는다(전역 한도가 5라 이득 없음).
 2. **리서치 브리프 재사용**: 후속 회차에서 `01_research/trend-brief.md`의 종합 일자가 30일 이내면 리서치팀(5 에이전트)을 재기동하지 않고 재사용한다. 예외: 사용자의 명시적 재조사 요청, 무관한 새 기획.
-3. **검증은 렌더와 병행**: panel-validator는 완료 패널부터 검증을 시작하고, 루프 재검증은 재렌더된 패널로 한정한다(통과 패널 반복 재Read 금지).
+3. **검증은 렌더와 병행**: (카나리아 1웨이브 선검증 이후) panel-validator는 완료 패널부터 검증을 시작하고, 루프 재검증은 재렌더된 패널로 한정한다(통과 패널 반복 재Read 금지).
 4. **뷰어 로딩**: 템플릿(`webtoon-assembly/assets/viewer-template.html`) 기준 — 선두 2~3장 eager + 나머지 lazy/프리페치, `w`/`h` 치수 예약(CLS 방지), per-panel `gap`.
 5. **(선택) 패널 용량 최적화**는 도구가 있을 때만, 반드시 **매니페스트 생성 전**(검증된 바이트 = 배포 바이트). ep01에 소급 적용 금지.
+6. **회차 간 학습 루프(retro)**: 사인오프 후 오케스트레이터가 `06_assembly/retro_ep{NN}.md`(축별 REGEN 집계·플래그 패널·효과 확인된 보강 패턴 — 원천은 validation.md의 REGEN 회복 기록 `패널 → 축 → 적용 보강 → 결과`)를 남기고, prompt-smith는 새 회차 프롬프트 작성 전 직전 회차 retro를 Read해 검증된 패턴을 선적용한다(동일 결함 클래스 재발 방지).
 
 ## 에이전트 성능 규약
 
@@ -56,3 +57,4 @@ _render_logs/   # codex 세션 로그 (감사 추적)
 - **2026-07-07** — EP01 검수 후 대규모 개선: ① 경로 규약을 `_workspace/` → 저장소 루트로 통일(스킬/에이전트 전체), Phase 0 후속 작업 판별을 `02_story/concept.md` 기준으로 수정 ② 렌더 스크립트 이식성 확보(절대경로 하드코딩 제거, 인자화) ③ md5 검증 매니페스트 + `_verify_release.sh` 릴리스 게이트 신설 ④ 재렌더 원자 규약·★SSOT 앵커 FLAG 금지 정책 추가(P32/P49 무검증 유출 사고 재발 방지) ⑤ TeamCreate 부재 시 Agent 팬아웃 폴백 명시 ⑥ 에이전트 `model: opus` 하드코딩 제거(세션 상속) ⑦ refs/ git 추적 예외.
 - **2026-07-07 (성능 패스)** — ① `_render.sh` 웨이브 → **롤링 동시 5**(`wait -n`, bash<4.3은 웨이브 폴백, `RENDER_CONCURRENCY` 하향 노브) ② `_verify_release.sh` md5 일괄 계산 재사용([3][4][5] 공유, per-file 스폰 제거) + 연속 번호 검사 추가 ③ 뷰어 템플릿: 말풍선 오버레이 잔재 제거(베이크 정책 정합), per-panel `gap`·`w/h` 치수 예약(CLS), 선두 eager + IO 프리페치 ④ 리서치 브리프 30일 재사용 게이트(Phase 2 스킵) + Phase 2 `model:"opus"` 하드코딩 제거 ⑤ panel-artist-a/b/c 역할을 REGEN 분담으로 명문화(1차 렌더 = 드라이버 단일 실행) ⑥ 렌더-검증 병행·재검증 범위 한정(재렌더분만) 명문화 ⑦ 선택적 패널 용량 최적화 규약 신설(매니페스트 생성 전만, ep01 소급 금지) ⑧ `_split_prompts.py` 프롬프트 누락 헤더 시 exit 1.
 - **2026-07-07 (에이전트 성능 패스)** — ① 27개 전 에이전트에 **단독 스폰 폴백**(팀 도구 없으면 파일 기반 통신 — SendMessage 시도 낭비 제거) ② 오케스트레이터에 **스폰 프롬프트 규약**(입력 경로 명시·탐색 금지)과 **모델 티어 지침**(비전 게이트 다운그레이드 금지 / panel-artist는 sonnet 허용) ③ panel-validator·quality-reviewer 이미지 **병렬 Read 배치**(4~5장/메시지) + C6 측정 패스당 1회 일괄 ④ 레퍼런스 시트 **통합 1장 기본**으로 규약 정렬(문서 2장 분리 ↔ EP01 실전 1장 불일치 해소, 신규 캐릭터 레퍼런스 렌더 절반) ⑤ quality-reviewer 끝단 육안 재검 표본 규약(≈10~12장 + 원장 전수 대조, C3(d)만 전수 유지).
+- **2026-07-07 (파이널 패스)** — ① **카나리아 1웨이브**: 전량 렌더 전 대표 5장(대사 ≥2·HUD 1·무대사 1·2인+ 1) 선렌더 + 6축(C3(d) 포함) 선검증, 같은 축 결함 ≥2장 = 시스템성 → prompt-smith가 전 패널 공통 패턴 일괄 수정 + 재분할 후 재개(EP01 오버레이 13/57장 끝단 발견 재발 방지) ② **Phase 4 크리티컬 패스 중첩**: 레퍼런스 렌더 ∥ 샷리스트·레터링·프롬프트(앵커 경로는 character-sheets.md에서 결정적 — 패널 렌더만 refs 확정에 게이트, 외형 변경 강제 시 prompt-smith가 렌더 전 패치) ③ **Phase 3 부분 병렬**: concept 후 world ∥ characters(충돌은 series-plotter가 series-arc 전 조정·출처 병기) ④ `_render.sh` **행 방지 타임아웃**(`RENDER_TIMEOUT` 기본 900초, GNU timeout 시) + **이번 패스 FAIL분 1회 자동 재시도**(RETRY 라인·`*.retry.log`, SKIP분 제외) ⑤ **REGEN 웨이브 배칭**(누적 ≤5장 임시 jobsdir + `_render.sh` 1회 — 1패널 1호출 금지, 판정·원장은 패널별 유지) ⑥ **단일 패널 프롬프트 조회 = job `.txt` Read**(전체 prompts.md ~60KB Read 금지; 정본·동기화 규칙은 기존 유지) ⑦ **회차 간 학습 루프**(validation.md REGEN 회복 기록 → `retro_ep{NN}.md` → 다음 회차 prompt-smith 선적용).

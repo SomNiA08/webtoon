@@ -13,7 +13,7 @@
 - **27 에이전트 / 4 단계 팀**: 리서치 → 시나리오 → 비주얼 → 조립검수. 각 Phase마다 팀을 재구성하며 운영합니다.
 - **레퍼런스 시트 선행 렌더**: 캐릭터 다각도·표정 레퍼런스를 먼저 렌더해 회차 간 외형 일관성의 단일 진실원천(SSOT)을 확보합니다.
 - **in-image 말풍선 베이크**: 말풍선과 한글 대사를 이미지 생성 시 함께 그려, 별도 텍스트 오버레이 없이 조립합니다.
-- **병렬 렌더 + 생성-검증 루프**: `codex-image`로 동시 5장 롤링 렌더하고(한 장이 끝나는 즉시 다음 장 투입), `panel-validator`가 렌더와 병행해 6축 검증 후 기준 미달 패널만 재생성합니다.
+- **병렬 렌더 + 생성-검증 루프**: 대표 5장 카나리아 선검증으로 시스템성 결함을 조기 차단한 뒤, `codex-image`로 동시 5장 롤링 렌더하고(한 장이 끝나는 즉시 다음 장 투입), `panel-validator`가 렌더와 병행해 6축 검증 후 기준 미달 패널만 재생성합니다.
 - **연속성 관리**: 회차를 넘어 캐릭터 외형·설정·떡밥(복선)을 누적 추적합니다.
 
 ---
@@ -63,7 +63,7 @@
 
 ### 🎨 비주얼팀 — 레퍼런스 선행 + 생성-검증 루프
 
-아트 디렉터의 스타일 바이블 → 캐릭터 레퍼런스 시트 선행 렌더 → 샷리스트·레터링 → 프롬프트 합성 → 렌더 드라이버(`_render.sh`)가 동시 5장 롤링 렌더 → panel-validator가 렌더와 병행해 6축 검증·재생성 루프를 돌리고, 3명의 아티스트가 scene 그룹별 REGEN 재렌더를 분담합니다. 말풍선은 이미지에 함께 그려집니다(in-image 베이크).
+아트 디렉터의 스타일 바이블 → 캐릭터 레퍼런스 시트 렌더와 샷리스트·레터링·프롬프트 합성을 **병렬로** 진행하고(패널 렌더만 레퍼런스 확정에 게이트) → 대표 5장 **카나리아 선검증**으로 시스템성 결함(공통 프롬프트 패턴)을 먼저 차단 → 렌더 드라이버(`_render.sh`)가 동시 5장 롤링 렌더 → panel-validator가 렌더와 병행해 6축 검증·재생성 루프를 돌리고, 3명의 아티스트가 scene 그룹별 REGEN 재렌더를 ≤5장 웨이브로 분담합니다. 말풍선은 이미지에 함께 그려집니다(in-image 베이크).
 
 ![비주얼팀](docs/images/04_visual.png)
 
@@ -79,14 +79,14 @@
 
 ```
 trend-brief.md
-   └→ concept → world → characters → series-arc → {twist-plan, tension-curve}
-                                                      └→ beatsheet → script → script_final
+   └→ concept → {world ∥ characters} → series-arc → {twist-plan, tension-curve}
+                 (병렬 — 충돌은 series-plotter 조정)   └→ beatsheet → script → script_final
 script_final + characters
    └→ style-bible(+장소토큰, 말풍선 규약) / character-sheets
-        └→ refs/*.png (레퍼런스 시트, 패널 전 선행)
+        ├→ refs/*.png 렌더 (문서 트랙과 병렬 — 패널 '렌더'만 확정에 게이트)
         └→ shotlist(scene_id/location) + lettering(in-image 말풍선 명세)
               └→ prompts(스타일+장소+레퍼런스앵커+말풍선 베이크, scene A/B/C)
-                    └→ panel_*.png ⇄ panel-validator 6축 검증-재생성 루프
+                    └→ 카나리아 5장 선검증 → 전량 렌더(롤링 동시 5) ⇄ panel-validator 6축 검증-재생성 루프
                           └→ validation.md (전 패널 통과)
 panel_*.png(말풍선 포함) → index.html(오버레이 없음) → qa_report → RELEASE/ep{NN}/
 ```

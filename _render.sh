@@ -47,7 +47,24 @@ else
   ROLLING=0
 fi
 
-SUFFIX=$'\n\n(Use the image_generation tool to create exactly ONE image for the above. Do NOT copy, move, or write any file yourself. After the image is generated, output the absolute path of the generated PNG file on the final line.)'
+# Save contract (2026-07-08 patch, ported from publish harness): newer codex
+# builds return image_generation output INLINE (base64) and never write
+# ~/.codex/generated_images — the old "Do NOT write any file" suffix then yields
+# zero files, and the uuid-grep can accidentally match a STALE month-old dir
+# mentioned in the log (real incident in publish: brand samples silently copied
+# a months-old image → md5-duplicate pair). So codex is now told to SAVE the PNG
+# itself at the exact target path (sandbox is workspace-write, OUTDIR lives in
+# the repo); the driver treats a non-empty target file as success first and
+# keeps the uuid-copy path only as a legacy fallback for older codex builds that
+# still auto-save.
+suffix_for() {
+  printf '\n\n(Use the image_generation tool to create exactly ONE image for the above. Then save the generated image as a PNG file at exactly this path: %s — if the tool already saved a .png file somewhere, copy it to that path; if the image came back inline as base64 data, decode and write it to that path yourself. Create parent directories if needed. Do not save anywhere else. After saving, output that absolute path on the final line.)' "$1"
+}
+
+# absolute OUTDIR once (mixed C:/ form via cygpath when present — codex on
+# Windows handles it; plain pwd elsewhere)
+OUT_ABS="$(cd "$OUTDIR" && pwd)"
+command -v cygpath >/dev/null 2>&1 && OUT_ABS="$(cygpath -m "$OUT_ABS")"
 
 render_one() {
   local name="$1"
@@ -55,7 +72,7 @@ render_one() {
   local out="$OUTDIR/$name.png"
   local log="$LOGDIR/$name${3:-}.log"   # retry pass passes ".retry" (keeps first FAIL log)
   local prompt rc=0
-  prompt="$(cat "$promptfile")$SUFFIX"
+  prompt="$(cat "$promptfile")$(suffix_for "$OUT_ABS/$name.png")"
   if [ "$HAVE_TIMEOUT" -eq 1 ]; then
     timeout "$TIMEOUT_S" codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" "$prompt" < /dev/null > "$log" 2>&1 || rc=$?
     if [ "$rc" -eq 124 ]; then
@@ -65,19 +82,27 @@ render_one() {
   else
     codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" "$prompt" < /dev/null > "$log" 2>&1 || true
   fi
+  # primary: codex saved the file directly at the requested path
+  if [ -s "$out" ]; then
+    echo "OK   $name -> $out ($(wc -c < "$out") bytes, direct)"
+    return 0
+  fi
+  # legacy fallback: older codex auto-saves under $GEN/<session-uuid>/ — but only
+  # trust a FRESH dir (mtime within this run) so a stale uuid mentioned in the
+  # log can never resurrect a month-old image (the md5-duplicate incident).
   local uuid
   uuid="$(grep -oiE '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$log" | tail -1)"
   if [ -n "$uuid" ] && [ -d "$GEN/$uuid" ]; then
     local png
-    png="$(ls -t "$GEN/$uuid"/*.png 2>/dev/null | head -1)"
+    png="$(find "$GEN/$uuid" -name '*.png' -newermt '-30 minutes' 2>/dev/null | head -1)"
     if [ -n "$png" ] && [ -s "$png" ]; then
       cp "$png" "$out"
-      echo "OK   $name -> $out ($(wc -c < "$out") bytes)"
+      echo "OK   $name -> $out ($(wc -c < "$out") bytes, legacy-copy)"
     else
-      echo "FAIL $name : no PNG in $uuid"
+      echo "FAIL $name : uuid dir exists but no fresh PNG (stale dir ignored)"
     fi
   else
-    echo "FAIL $name : no uuid in log"
+    echo "FAIL $name : no saved file and no uuid in log"
   fi
 }
 

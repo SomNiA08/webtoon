@@ -11,6 +11,9 @@
 #   [S1] _split_prompts.py  — split + missing-prompt exit 1
 #   [S2] _render.sh         — launch count, in-window single retry, .retry.log
 #                             audit trail, SKIP-on-rerun (success/flaky/dead cases)
+#  [S2b] _render.sh         — reference attachment: per-job <name>.refs and global
+#                             $RENDER_REFS reach codex as `-i`; missing ref warns
+#                             (non-fatal); prompt travels on stdin
 #   [S3] _verify_release.sh — full PASS path (50-panel fixture + manifest + RELEASE)
 #   [S4] _verify_release.sh — defect detection: zero-byte / bad header / md5 dup /
 #                             manifest mismatch / RELEASE divergence
@@ -69,8 +72,14 @@ mkdir -p "$T/rd/bin" "$T/rd/gen" "$T/rd/jobs" "$T/rd/out" "$T/rd/state" "$T/rd/r
 cp "$REPO/_render.sh" "$T/rd/repo/"
 cat > "$T/rd/bin/codex" <<'EOF'
 #!/usr/bin/env bash
-# fake codex — behavior keyed by PANEL:<name> token in the prompt (last arg)
-prompt="${@: -1}"
+# fake codex — the driver pipes the prompt on STDIN (a positional prompt would be
+# swallowed by the variadic `-i`). Behavior keyed by the PANEL:<name> token.
+prompt="$(cat)"
+# record -i attachments so the smoke can assert the ref wiring
+while [ $# -gt 0 ]; do
+  if [ "$1" = "-i" ] && [ -n "${FAKESTATE:-}" ]; then echo "$2" >> "$FAKESTATE/iargs"; shift; fi
+  shift
+done
 succeed() {
   u="$(python -c "import uuid;print(uuid.uuid4())")"
   mkdir -p "$CODEX_GEN_DIR/$u"
@@ -102,6 +111,26 @@ out2="$(CODEX_GEN_DIR="$T/rd/gen" FAKESTATE="$T/rd/state" PATH="$T/rd/bin:$PATH"
         bash "$T/rd/repo/_render.sh" "$T/rd/jobs" "$T/rd/out" 2>&1)"
 [ "$(echo "$out2" | grep -c '^SKIP')" -eq 2 ] && echo "$out2" | grep -q '==== DONE (1 launched) ====' \
   && ok "driver: rerun SKIPs done panels, relaunches only missing" || bad "driver: rerun SKIP behavior wrong"
+
+# ── [S2b] reference attachment (codex -i) ────────────────────────────────────
+# The ref sheets are the series consistency anchor; if they silently stop reaching
+# codex, every panel drifts and only a human would notice. So assert the wiring.
+mkdir -p "$T/rd/jobs_ref" "$T/rd/out_ref"
+printf 'FAKEREF' > "$T/rd/repo/refimg.png"
+printf 'FAKEREF2' > "$T/rd/repo/styleimg.png"
+printf 'render PANEL:panel_ref' > "$T/rd/jobs_ref/panel_ref.txt"
+printf '# per-panel refs\nrefimg.png\nno_such_ref.png\n' > "$T/rd/jobs_ref/panel_ref.refs"
+: > "$T/rd/state/iargs"
+out3="$(CODEX_GEN_DIR="$T/rd/gen" FAKESTATE="$T/rd/state" PATH="$T/rd/bin:$PATH" RENDER_REFS="styleimg.png" \
+        bash "$T/rd/repo/_render.sh" "$T/rd/jobs_ref" "$T/rd/out_ref" 2>&1)"
+grep -q 'refimg.png' "$T/rd/state/iargs" \
+  && ok "driver: per-job .refs reach codex as -i" || bad "driver: .refs not attached"
+grep -q 'styleimg.png' "$T/rd/state/iargs" \
+  && ok "driver: global \$RENDER_REFS reaches codex as -i" || bad "driver: RENDER_REFS not attached"
+echo "$out3" | grep -q 'WARN ref not found' \
+  && ok "driver: missing ref warns, render continues" || bad "driver: missing ref must warn"
+[ -s "$T/rd/out_ref/panel_ref.png" ] \
+  && ok "driver: ref-attached render still produces a PNG" || bad "driver: ref-attached render produced nothing"
 
 # ── [S3] release gate — PASS path (50-panel fixture) ─────────────────────────
 mkdir -p "$T/gate/05_panels/ep77" "$T/gate/04_visual"

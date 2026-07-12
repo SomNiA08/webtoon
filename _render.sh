@@ -66,6 +66,34 @@ suffix_for() {
 OUT_ABS="$(cd "$OUTDIR" && pwd)"
 command -v cygpath >/dev/null 2>&1 && OUT_ABS="$(cygpath -m "$OUT_ABS")"
 
+# Reference attachment (2026-07-12): codex `-i` attaches images to the prompt and
+# image_generation DOES condition on them — verified by canary (details present in
+# the original art but absent from the prompt text, e.g. feather sparkle specks and
+# jacket pocket welts, transferred into the output). Before this, consistency rested
+# on text tokens alone and the ref sheets were only a validator yardstick.
+# Two sources, both optional (no refs => identical behavior to the text-only driver):
+#   $JOBSDIR/<name>.refs  — per-panel list, one image path per line ('#' comments ok)
+#   $RENDER_REFS          — space-separated list attached to EVERY render
+# Paths resolve against the repo root first, then as-is.
+collect_refs() {   # -> populates global IARGS
+  IARGS=()
+  local promptfile="$1" reffile r
+  reffile="${promptfile%.txt}.refs"
+  if [ -f "$reffile" ]; then
+    while IFS= read -r r || [ -n "$r" ]; do
+      case "$r" in ''|\#*) continue ;; esac
+      if   [ -f "$REPO/$r" ]; then IARGS+=(-i "$REPO/$r")
+      elif [ -f "$r" ];       then IARGS+=(-i "$r")
+      else echo "WARN ref not found (skipped): $r" >&2; fi
+    done < "$reffile"
+  fi
+  for r in ${RENDER_REFS:-}; do
+    if   [ -f "$REPO/$r" ]; then IARGS+=(-i "$REPO/$r")
+    elif [ -f "$r" ];       then IARGS+=(-i "$r")
+    else echo "WARN ref not found (skipped): $r" >&2; fi
+  done
+}
+
 render_one() {
   local name="$1"
   local promptfile="$2"
@@ -73,14 +101,19 @@ render_one() {
   local log="$LOGDIR/$name${3:-}.log"   # retry pass passes ".retry" (keeps first FAIL log)
   local prompt rc=0
   prompt="$(cat "$promptfile")$(suffix_for "$OUT_ABS/$name.png")"
+  collect_refs "$promptfile"
+  # The prompt goes on STDIN, never as a positional arg: `-i` is variadic, so a
+  # trailing positional prompt gets swallowed as another image path and codex then
+  # blocks reading stdin ("No prompt provided via stdin"). Piping is the only form
+  # that works with attachments, so it is used uniformly (with or without refs).
   if [ "$HAVE_TIMEOUT" -eq 1 ]; then
-    timeout "$TIMEOUT_S" codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" "$prompt" < /dev/null > "$log" 2>&1 || rc=$?
+    printf '%s' "$prompt" | timeout "$TIMEOUT_S" codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || rc=$?
     if [ "$rc" -eq 124 ]; then
       echo "FAIL $name : timeout (${TIMEOUT_S}s, slot released)"
       return 0
     fi
   else
-    codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" "$prompt" < /dev/null > "$log" 2>&1 || true
+    printf '%s' "$prompt" | codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || true
   fi
   # primary: codex saved the file directly at the requested path
   if [ -s "$out" ]; then

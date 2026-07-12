@@ -21,6 +21,10 @@ RELEASE/
 !04_visual/refs/*.png
 !04_visual/refs/INDEX.md
 
+# 사용자가 직접 만든 원본 캐릭터 이미지는 예외 — 기획의 입력 정본(재생성 불가)
+!00_input/characters/
+!00_input/characters/*.png
+
 # 로그/임시
 *.log
 .cache/

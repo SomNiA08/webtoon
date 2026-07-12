@@ -2,3 +2,7 @@
 # git-bash 실행이 깨진다(somnia-hub 2026-07-07 패스 ④와 동일 조치)
 *.sh text eol=lf
 *.py text eol=lf
+
+# 렌더 잡: 프롬프트/레퍼런스 첨부는 재현의 정본 — LF 고정
+*.refs text eol=lf
+*.tsv text eol=lf

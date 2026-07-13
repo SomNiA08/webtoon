@@ -29,3 +29,7 @@ RELEASE/
 *.log
 .cache/
 node_modules/
+
+# codex가 danger-full-access 렌더 중 떨구는 임시 헬퍼 파일
+tmp_*.cs
+tmp_*.ps1

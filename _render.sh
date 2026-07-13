@@ -37,6 +37,23 @@ mkdir -p "$LOGDIR" "$OUTDIR"
 # on a box where the sandboxed spawn works. (User-approved 2026-07-13.)
 SANDBOX="${RENDER_SANDBOX:-danger-full-access}"
 
+# Reasoning effort (2026-07-13). The user's global codex config runs at `ultra`,
+# which is pure waste here: the drawing is done by the image_generation tool, and
+# codex's own reasoning only decides "call imagegen, save to this path". Measured on
+# identical-complexity panels: ultra = 265s / 47k tokens, low = 126s / 42k tokens,
+# with no difference in the rendered image. Overriding per-invocation (-c) rather
+# than editing ~/.codex/config.toml keeps the user's other codex work untouched.
+# Raise with RENDER_EFFORT=medium if a future model needs it.
+EFFORT="${RENDER_EFFORT:-low}"
+
+# Codex plugins (documents/spreadsheets/pdf/browser/...) are irrelevant to image
+# generation but their descriptions ride along in every request: a trivial "reply OK"
+# call costs 15.7k tokens with them on, 7.3k with them off. The saving is swamped by
+# per-panel variance in real renders, but it is free, so they are off by default.
+PLUGINS_OFF="${RENDER_PLUGINS_OFF:-1}"
+CODEX_OPTS=( -c "model_reasoning_effort=\"$EFFORT\"" )
+[ "$PLUGINS_OFF" = "1" ] && CODEX_OPTS+=( -c 'plugins={}' )
+
 # Hard global cap: 5 concurrent codex sessions (plan limit — never exceeded).
 # RENDER_CONCURRENCY may LOWER the cap (e.g. when codex is slow); it is clamped to <=5.
 MAXC="${RENDER_CONCURRENCY:-5}"
@@ -118,13 +135,13 @@ render_one() {
   # blocks reading stdin ("No prompt provided via stdin"). Piping is the only form
   # that works with attachments, so it is used uniformly (with or without refs).
   if [ "$HAVE_TIMEOUT" -eq 1 ]; then
-    printf '%s' "$prompt" | timeout "$TIMEOUT_S" codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || rc=$?
+    printf '%s' "$prompt" | timeout "$TIMEOUT_S" codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" "${CODEX_OPTS[@]}" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || rc=$?
     if [ "$rc" -eq 124 ]; then
       echo "FAIL $name : timeout (${TIMEOUT_S}s, slot released)"
       return 0
     fi
   else
-    printf '%s' "$prompt" | codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || true
+    printf '%s' "$prompt" | codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" "${CODEX_OPTS[@]}" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || true
   fi
   # primary: codex saved the file directly at the requested path
   if [ -s "$out" ]; then

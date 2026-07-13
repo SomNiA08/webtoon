@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>농심 이스포츠 아카데미 — EP01 · 왜 졌는지 말해봐</title>
+<style>
+  :root{
+    --max-w: 720px;
+    --bg: #0e0e12;
+    --fg: #e8e6ef;
+    --muted: #8c8a99;
+    --analysis: #2b2140;      /* 분석실 남보라 — P021 뒤 큰 여백의 배경 */
+    --gap-base: 3vh;          /* 기본 2~4% */
+    --gap-m12: 3.6vh;         /* 중간 1.2배 */
+    --gap-m13: 3.9vh;         /* 중간 1.3배 */
+    --gap-m14: 4.2vh;         /* 중간 1.4배 */
+    --gap-big: 150vh;         /* ★ 회차 유일 — P021 → P022 (화면 높이 1.5배) */
+  }
+  *{box-sizing:border-box;}
+  html{background:var(--bg);}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    max-width:var(--max-w); margin:0 auto; padding:28px 20px 20px; text-align:center;
+  }
+  header .title{font-size:15px; letter-spacing:.14em; color:var(--muted); font-weight:600;}
+  header .episode{margin-top:8px; font-size:21px; font-weight:800; letter-spacing:-.01em;}
+  header .rule{width:44px; height:2px; background:#4a4560; margin:18px auto 0; border-radius:2px;}
+
+  .strip{max-width:var(--max-w); margin:0 auto; padding:0;}
+  .panel{display:block; width:100%; margin:0;}
+  .panel img{
+    display:block; width:100%; height:auto; margin:0;
+    background:#17161d;                 /* 로드 전 칸 색 */
+  }
+  /* 간격 = 다음 패널까지의 이음새. 0이면 무봉제. */
+  .gap{width:100%;}
+  .gap[data-kind="big"]{background:var(--analysis);}  /* 텍스트·효과선 0 — 침묵 한 박자 */
+
+  .missing{
+    display:flex; align-items:center; justify-content:center;
+    width:100%; min-height:220px; background:#2a1414; color:#ff9c9c;
+    border:1px dashed #7a3b3b; font-size:14px; letter-spacing:.02em;
+  }
+  footer{
+    max-width:var(--max-w); margin:0 auto; padding:40px 20px 64px; text-align:center;
+    color:var(--muted); font-size:13px; line-height:1.8;
+  }
+  footer .end{font-size:15px; font-weight:700; color:#c8c5d6; letter-spacing:.2em;}
+  @media (prefers-reduced-motion:no-preference){
+    .panel img{transition:opacity .18s ease;}
+  }
+</style>
+</head>
+<body>
+<script>
+/* ── 데이터 ───────────────────────────────────────────────────────────── */
+const META = {
+  title:   "농심 이스포츠 아카데미",
+  episode: "EP01 · 왜 졌는지 말해봐"
+};
+
+/* gap = 다음 패널까지의 간격 키.
+   base / m12 / m13 / m14 = 샷리스트 gap 지정 (기본 · 중간 1.2~1.4배)
+   big  = ★ 회차 전체 유일 — P021 → P022 (HOO가 되감기를 누르기 직전의 한 박자)
+   none = 회차 끝 */
+const GAP = { none:"0px", base:"var(--gap-base)", m12:"var(--gap-m12)", m13:"var(--gap-m13)", m14:"var(--gap-m14)", big:"var(--gap-big)" };
+
+/* [번호, 폭, 높이, gap키] — 폭/높이는 PNG 헤더 실측값(칸 높이 예약 = CLS 방지) */
+const RAW = [
+  [ 1,1536,1024,"base"], [ 2,1024,1536,"base"], [ 3,1024,1536,"base"], [ 4,1024,1536,"base"],
+  [ 5,1024,1536,"m13" ], [ 6,1024,1536,"base"], [ 7,1536,1024,"base"], [ 8,1024,1536,"base"],
+  [ 9,1024,1536,"base"], [10,1024,1536,"m14" ], [11,1536,1024,"base"], [12,1024,1536,"base"],
+  [13,1024,1536,"base"], [14,1536,1024,"base"], [15,1536,1024,"base"], [16,1024,1536,"base"],
+  [17,1024,1536,"base"], [18,1024,1536,"base"], [19,1024,1536,"base"], [20,1536,1024,"base"],
+  [21,1024,1536,"big" ], [22,1536,1024,"base"], [23,1536,1024,"base"], [24,1536,1024,"base"],
+  [25,1024,1536,"m13" ], [26,1024,1536,"base"], [27,1024,1536,"base"], [28,1024,1536,"base"],
+  [29,1024,1536,"base"], [30,1024,1536,"base"], [31,1024,1536,"base"], [32,1536,1024,"base"],
+  [33,1024,1536,"base"], [34,1024,1536,"base"], [35,1024,1536,"base"], [36,1024,1536,"m14" ],
+  [37,1024,1536,"base"], [38,1024,1536,"base"], [39,1536,1024,"base"], [40,1024,1536,"base"],
+  [41,1536,1024,"base"], [42,1024,1536,"base"], [43,1024,1536,"base"], [44,1536,1024,"base"],
+  [45,1024,1536,"base"], [46,1536,1024,"base"], [47,1024,1536,"m12" ], [48,1024,1536,"base"],
+  [49,1536,1024,"base"], [50,1024,1536,"base"], [51,1024,1536,"base"], [52,1024,1536,"base"],
+  [53,1024,1536,"base"], [54,1536,1024,"m13" ], [55,1536,1024,"base"], [56,1536,1024,"none"]
+];
+
+const PANELS = RAW.map(([n,w,h,gap])=>{
+  const id = String(n).padStart(3,"0");
+  return { src:`../../05_panels/ep01/panel_${id}.png`, alt:`panel ${id}`, w, h, gap };
+});
+</script>
+
+<header>
+  <div class="title" id="hTitle"></div>
+  <div class="episode" id="hEpisode"></div>
+  <div class="rule"></div>
+</header>
+
+<main class="strip" id="strip" aria-label="세로 스크롤 웹툰"></main>
+
+<footer>
+  <div class="end">— 계속 —</div>
+  <div id="fMeta"></div>
+</footer>
+
+<script>
+/* ── 조립 ─────────────────────────────────────────────────────────────── */
+document.title = `${META.title} — ${META.episode}`;
+document.getElementById("hTitle").textContent   = META.title;
+document.getElementById("hEpisode").textContent = META.episode;
+document.getElementById("fMeta").textContent    = `${META.title} · ${META.episode} · ${PANELS.length}컷`;
+
+const EAGER = 3;                 // 선두 3장은 즉시 로드(첫 화면)
+const strip = document.getElementById("strip");
+const frag  = document.createDocumentFragment();
+const lazyImgs = [];
+
+PANELS.forEach((p, i) => {
+  const fig = document.createElement("div");
+  fig.className = "panel";
+
+  const img = document.createElement("img");
+  img.width  = p.w;             // 원본 픽셀 치수 → 로드 전 칸 높이 예약(CLS 0)
+  img.height = p.h;
+  img.alt = p.alt;
+  img.decoding = "async";
+
+  if (i < EAGER) {
+    img.loading = "eager";
+    img.src = p.src;
+    if (i === 0) img.fetchPriority = "high";
+  } else {
+    img.loading = "lazy";
+    img.dataset.src = p.src;    // IntersectionObserver 프리페치가 채운다
+    lazyImgs.push(img);
+  }
+
+  img.onerror = () => {         // 결손을 숨기지 않는다
+    const ph = document.createElement("div");
+    ph.className = "missing";
+    ph.textContent = `⚠ 패널 누락 / 로드 실패 — ${p.alt}`;
+    img.replaceWith(ph);
+  };
+
+  fig.appendChild(img);
+  frag.appendChild(fig);
+
+  const gapKey = p.gap || "none";
+  if (gapKey !== "none") {
+    const g = document.createElement("div");
+    g.className = "gap";
+    g.dataset.kind = gapKey === "big" ? "big" : "normal";
+    g.style.height = GAP[gapKey];
+    g.setAttribute("aria-hidden", "true");
+    frag.appendChild(g);
+  }
+});
+strip.appendChild(frag);
+
+/* 프리페치: 뷰포트 2400px 앞서 실제 src를 채워 스크롤 도달 전에 로드를 끝낸다 */
+const hydrate = img => { if (img.dataset.src) { img.src = img.dataset.src; delete img.dataset.src; } };
+
+if ("IntersectionObserver" in window) {
+  const io = new IntersectionObserver((entries, obs) => {
+    for (const e of entries) {
+      if (e.isIntersecting) { hydrate(e.target); obs.unobserve(e.target); }
+    }
+  }, { rootMargin: "2400px 0px 1200px 0px" });
+  lazyImgs.forEach(img => io.observe(img));
+} else {
+  lazyImgs.forEach(hydrate);    // 폴백: 네이티브 lazy에 맡긴다
+}
+</script>
+</body>
+</html>

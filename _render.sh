@@ -26,6 +26,17 @@ OUTDIR="$2"
 LOGDIR="$REPO/_render_logs"
 mkdir -p "$LOGDIR" "$OUTDIR"
 
+# codex sandbox mode (2026-07-13). `workspace-write` broke on this Windows box:
+# codex spawns pwsh.exe from the WindowsApps store path to read its own imagegen
+# SKILL.md, and the restricted sandbox token cannot CreateProcessAsUserW there
+# ("Windows error 5 / 액세스가 거부되었습니다"), so most sessions burned their slot
+# without producing a PNG (measured: 1 panel per 9.5-minute pass). Under
+# `danger-full-access` the same panel renders in ~4.4 min. The prompts are authored
+# in-repo (no untrusted input) and the task is image generation into this repo, so
+# the driver defaults to full access; override with RENDER_SANDBOX=workspace-write
+# on a box where the sandboxed spawn works. (User-approved 2026-07-13.)
+SANDBOX="${RENDER_SANDBOX:-danger-full-access}"
+
 # Hard global cap: 5 concurrent codex sessions (plan limit — never exceeded).
 # RENDER_CONCURRENCY may LOWER the cap (e.g. when codex is slow); it is clamped to <=5.
 MAXC="${RENDER_CONCURRENCY:-5}"
@@ -107,13 +118,13 @@ render_one() {
   # blocks reading stdin ("No prompt provided via stdin"). Piping is the only form
   # that works with attachments, so it is used uniformly (with or without refs).
   if [ "$HAVE_TIMEOUT" -eq 1 ]; then
-    printf '%s' "$prompt" | timeout "$TIMEOUT_S" codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || rc=$?
+    printf '%s' "$prompt" | timeout "$TIMEOUT_S" codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || rc=$?
     if [ "$rc" -eq 124 ]; then
       echo "FAIL $name : timeout (${TIMEOUT_S}s, slot released)"
       return 0
     fi
   else
-    printf '%s' "$prompt" | codex exec --sandbox workspace-write --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || true
+    printf '%s' "$prompt" | codex exec --sandbox "$SANDBOX" --skip-git-repo-check --cd "$REPO" ${IARGS[@]+"${IARGS[@]}"} > "$log" 2>&1 || true
   fi
   # primary: codex saved the file directly at the requested path
   if [ -s "$out" ]; then

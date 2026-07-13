@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>웹툰 뷰어 — ep01</title>
+<!--
+  세로 스크롤 웹툰 뷰어 (단일 HTML, 외부 의존성 없음) — episode-compositor 조립본
+  이 회차의 말풍선·한글 대사는 패널 PNG에 in-image 베이크되어 있다 — 오버레이 없음.
+
+  gap 산정 근거: 04_visual/ep01_shotlist.md §1-1 gap 척도 + 패널별 gap 지정.
+  기본 단위 BASE=40px(1.0×)에 척도를 곱해 px로 변환했다(0.6×=24 / 0.8×=32 / 1.0×=40 / 1.3×=52 / 1.5×=60).
+  panel_034 뒤 여백①(화면×1.5~2.0 → 1400px)과 panel_049 뒤 여백②(화면×1.0~1.2 → 900px, ①보다 짧게)는
+  shotlist가 지정한 절대 여백 — 검은 이미지 없이 뷰어 배경색 그대로 비운다.
+  w/h는 05_panels/ep01/panel_*.png의 실측 PNG 픽셀 치수(로드 전 칸 높이 예약 → CLS 방지).
+-->
+<style>
+  :root {
+    --max-w: 720px;          /* 모바일 우선 기준 폭 */
+    --panel-gap: 40px;       /* 패널 이음새 기본값(1.0×). 항목별 gap이 이를 덮어쓴다 */
+    --page-bg: #0e0e10;      /* 뷰어 바깥 배경 */
+    --strip-bg: #ffffff;     /* 패널 스트립 배경(이미지 로드 전) */
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--page-bg);
+    font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    color: #111;
+    -webkit-text-size-adjust: 100%;
+  }
+  header.viewer-head {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(14,14,16,.92);
+    color: #f5f5f7; text-align: center;
+    padding: 10px 12px; font-size: 14px; letter-spacing: .02em;
+    backdrop-filter: blur(6px);
+  }
+  header.viewer-head b { font-weight: 700; }
+  .strip {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    background: var(--strip-bg);
+  }
+  .panel { position: relative; line-height: 0; }
+  /* 이음새: 기본은 --panel-gap, 항목별 gap이 인라인 스타일로 덮어쓴다 */
+  .panel:not(:last-child) { margin-bottom: var(--panel-gap); }
+  .panel img {
+    width: 100%; height: auto; display: block;
+    background: #e9e9ee; /* 이미지 결손/로드 전에도 칸 형태 유지 */
+  }
+  .panel .missing {
+    line-height: 1.5; color: #b00020; background: #fff3f3;
+    border: 2px dashed #b00020; text-align: center;
+    padding: 48px 12px; font-size: 14px;
+  }
+  footer.viewer-foot {
+    color:#9a9aa2; text-align:center; padding:28px 12px 60px;
+    font-size:13px; max-width: var(--max-w); margin:0 auto;
+  }
+</style>
+</head>
+<body>
+<header class="viewer-head"><b id="m-title">웹툰 제목</b> · <span id="m-ep">ep01</span></header>
+<main class="strip" id="strip" aria-label="webtoon vertical viewer"></main>
+<footer class="viewer-foot" id="foot"></footer>
+
+<script>
+/* ===== META ===== */
+const META = { title: "이스포츠 진로 홍보툰", episode: "EP01 · 실격" };
+
+/* ===== 로딩 전략 상수 ===== */
+const EAGER_COUNT = 3;            // 선두 즉시 로드 패널 수(첫 화면)
+const PREFETCH_MARGIN = "2400px"; // 뷰포트 하단에서 이만큼 앞서 미리 로드(약 2~3패널 분량)
+
+/* ===== PANELS 데이터 (54장, panel_001 → panel_054 순서 = 서사 순서) =====
+   src 는 이 파일(06_assembly/ep01/index.html) 기준 상대경로.
+   gap(px)=다음 패널과의 간격, w/h=05_panels/ep01/panel_*.png 실측 픽셀 치수(CLS 방지).
+   말풍선 데이터는 없다 — 대사는 패널 PNG에 베이크되어 있다(shotlist/lettering 근거는 이 파일 상단 주석 참조). */
+const PANELS = [
+  { src: "../../05_panels/ep01/panel_001.png", alt: "panel 001", gap: 52, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_002.png", alt: "panel 002", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_003.png", alt: "panel 003", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_004.png", alt: "panel 004", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_005.png", alt: "panel 005", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_006.png", alt: "panel 006", gap: 24, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_007.png", alt: "panel 007", gap: 40, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_008.png", alt: "panel 008", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_009.png", alt: "panel 009", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_010.png", alt: "panel 010", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_011.png", alt: "panel 011", gap: 40, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_012.png", alt: "panel 012", gap: 32, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_013.png", alt: "panel 013", gap: 24, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_014.png", alt: "panel 014", gap: 40, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_015.png", alt: "panel 015", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_016.png", alt: "panel 016", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_017.png", alt: "panel 017", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_018.png", alt: "panel 018", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_019.png", alt: "panel 019", gap: 24, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_020.png", alt: "panel 020", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_021.png", alt: "panel 021", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_022.png", alt: "panel 022", gap: 24, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_023.png", alt: "panel 023", gap: 40, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_024.png", alt: "panel 024", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_025.png", alt: "panel 025", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_026.png", alt: "panel 026", gap: 24, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_027.png", alt: "panel 027", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_028.png", alt: "panel 028", gap: 52, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_029.png", alt: "panel 029", gap: 32, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_030.png", alt: "panel 030", gap: 40, w: 1254, h: 1254 },
+  { src: "../../05_panels/ep01/panel_031.png", alt: "panel 031", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_032.png", alt: "panel 032", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_033.png", alt: "panel 033", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_034.png", alt: "panel 034", gap: 1400, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_035.png", alt: "panel 035", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_036.png", alt: "panel 036", gap: 32, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_037.png", alt: "panel 037", gap: 60, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_038.png", alt: "panel 038", gap: 60, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_039.png", alt: "panel 039", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_040.png", alt: "panel 040", gap: 32, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_041.png", alt: "panel 041", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_042.png", alt: "panel 042", gap: 24, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_043.png", alt: "panel 043", gap: 40, w: 1024, h: 1024 },
+  { src: "../../05_panels/ep01/panel_044.png", alt: "panel 044", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_045.png", alt: "panel 045", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_046.png", alt: "panel 046", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_047.png", alt: "panel 047", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_048.png", alt: "panel 048", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_049.png", alt: "panel 049", gap: 900, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_050.png", alt: "panel 050", gap: 40, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_051.png", alt: "panel 051", gap: 52, w: 1024, h: 1536 },
+  { src: "../../05_panels/ep01/panel_052.png", alt: "panel 052", gap: 40, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_053.png", alt: "panel 053", gap: 40, w: 1536, h: 1024 },
+  { src: "../../05_panels/ep01/panel_054.png", alt: "panel 054", gap: 0, w: 1536, h: 1024 },
+];
+
+/* ===== 렌더러 ===== */
+function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+
+function renderPanel(p, i){
+  const panel = el("div", "panel");
+  const img = new Image();
+  if (i < EAGER_COUNT) {
+    img.loading = "eager";                 // 선두 패널: 즉시 로드(첫 화면 체감 속도)
+    if (i === 0) img.fetchPriority = "high";
+  } else {
+    img.loading = "lazy";                  // 나머지: 지연 로드(초기 로딩·메모리 절감)
+  }
+  img.decoding = "async";
+  if (p.w && p.h) { img.width = p.w; img.height = p.h; }  // 로드 전 칸 높이 예약(레이아웃 시프트 방지)
+  img.alt = p.alt || ("panel " + String(i+1).padStart(3,"0"));
+  img.src = p.src;
+  img.onerror = () => {                    // 결손/0바이트 PNG는 칸을 비우지 않고 표시
+    const ph = el("div", "missing", "⚠ 패널 이미지 누락/손상: " + p.src);
+    img.replaceWith(ph);
+  };
+  if (p.gap != null) panel.style.marginBottom = p.gap + "px"; // 항목별 이음새(기본은 --panel-gap)
+  panel.appendChild(img);
+  return panel;
+}
+
+(function init(){
+  document.title = META.title + " — " + META.episode;
+  document.getElementById("m-title").textContent = META.title;
+  document.getElementById("m-ep").textContent = META.episode;
+  const strip = document.getElementById("strip");
+  PANELS.forEach((p,i) => strip.appendChild(renderPanel(p,i)));
+  document.getElementById("foot").textContent =
+    "총 " + PANELS.length + " 패널 · 끝까지 스크롤하세요";
+
+  // 프리페치: 뷰포트보다 PREFETCH_MARGIN 앞서 lazy 이미지를 eager로 승격해
+  // 독자가 스크롤로 도달하기 전에 로드를 끝낸다. IO 미지원이면 네이티브 lazy로 폴백.
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const img = e.target.querySelector("img");
+        if (img && img.loading === "lazy") img.loading = "eager";
+        io.unobserve(e.target);
+      }
+    }, { rootMargin: PREFETCH_MARGIN + " 0px" });
+    Array.from(strip.children).forEach(node => io.observe(node));
+  }
+})();
+</script>
+</body>
+</html>
